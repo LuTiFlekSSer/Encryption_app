@@ -1,0 +1,11 @@
+/.idea/*
+!/.idea/cmake.xml
+
+/encryption_algs/libs/*.a
+
+/encryption_algs/kyznechik/cmake-build-release
+/encryption_algs/kyznechik/cmake-build-debug
+
+/encryption_algs/lib_test/cmake-build-release
+/encryption_algs/lib_test/cmake-build-debug
+/encryption_algs/lib_test/libs/*
