@@ -8,4 +8,7 @@
 
 /encryption_algs/lib_test/cmake-build-release
 /encryption_algs/lib_test/cmake-build-debug
+/encryption_algs/lib_test/cmake-build-debug-wsl
+
+/encryption_algs/build-dir/*
 /encryption_algs/lib_test/libs/*

@@ -1,6 +1,7 @@
 #include "stdio.h"
 #include "kyznechik.h"
 #include "stdint.h"
+#include "time.h"
 
 int main() {
     uint8_t key[] = {
@@ -11,10 +12,25 @@ int main() {
                 80, 69, 78, 68, 79, 68, 83, 73, 32, 83, 79, 83, 65, 84, 33, 33
             };
 
-    encrypt_data(key, text, text);
+    uint8_t **Ks = NULL;
+    init(key, &Ks);
+    encrypt_data((uint8_t const **)Ks, text, text);
+
 
     for (int i = 0; i < 16; ++i) {
         printf("%02X", text[i]);
     }
+    printf("\n");
+
+    clock_t start = clock();
+    int const iters = 100000;
+    for (int i = 0; i < iters; ++i) {
+        encrypt_data((uint8_t const **)Ks, text, text);
+    }
+    clock_t end = clock();
+    double seconds = (double)(end - start) / CLOCKS_PER_SEC;
+    printf("%lf\n", seconds);
+
+    finalize(&Ks);
     return 0;
 }

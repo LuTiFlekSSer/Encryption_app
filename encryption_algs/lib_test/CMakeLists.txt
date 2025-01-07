@@ -3,7 +3,6 @@ project(main C)
 
 set(CMAKE_C_STANDARD 11)
 
-
 add_subdirectory(../kyznechik ../libs)
 include_directories(../kyznechik)
 

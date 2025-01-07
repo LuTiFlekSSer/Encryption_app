@@ -70,7 +70,27 @@ void X_map(uint64_t const *a, uint64_t *b) {
     b[1] ^= a[1];
 }
 
-void gen_keys(uint8_t const *key, uint8_t **Ks) {
+int init(uint8_t const *key, uint8_t ***Ks) {
+    *Ks = malloc(10 * sizeof(uint8_t*));
+    if (*Ks == NULL) {
+        return -1;
+    }
+
+    uint8_t const size = 16 * sizeof(uint8_t);
+
+    for (int i = 0; i < 10; ++i) {
+        (*Ks)[i] = malloc(size);
+
+        if ((*Ks)[i] == NULL) {
+            for (int j = 0; j < i; ++j) {
+                free((*Ks)[j]);
+            }
+            free(*Ks);
+
+            return -1;
+        }
+    }
+
     uint8_t Cs[32][16] = {0};
 
     for (int i = 0; i < 32; ++i) {
@@ -79,7 +99,6 @@ void gen_keys(uint8_t const *key, uint8_t **Ks) {
     }
 
     uint8_t K_left[16], K_right[16];
-    uint8_t const size = 16 * sizeof(uint8_t);
 
     memcpy(K_left, key, size);
     memcpy(K_right, key + size, size);
@@ -88,8 +107,8 @@ void gen_keys(uint8_t const *key, uint8_t **Ks) {
         uint8_t K_buf[16];
 
         if (i % 8 == 0) {
-            memcpy(Ks[i / 4], K_left, size);
-            memcpy(Ks[i / 4 + 1], K_right, size);
+            memcpy((*Ks)[i / 4], K_left, size);
+            memcpy((*Ks)[i / 4 + 1], K_right, size);
         }
 
         memcpy(K_buf, K_right, size);
@@ -103,33 +122,16 @@ void gen_keys(uint8_t const *key, uint8_t **Ks) {
         memcpy(K_left, Cs[i], size);
     }
 
-    memcpy(Ks[8], K_left, size);
-    memcpy(Ks[9], K_right, size);
+    memcpy((*Ks)[8], K_left, size);
+    memcpy((*Ks)[9], K_right, size);
+
+    return 0;
 }
 
 
-int encrypt_data(uint8_t const *key, uint8_t const *data_in, uint8_t *data_out) {
-    uint8_t **Ks = malloc(10 * sizeof(uint8_t*));
-    if (Ks == NULL) {
-        return -1;
-    }
+void encrypt_data(uint8_t const **Ks, uint8_t const *data_in, uint8_t *data_out) {
+    uint8_t const size = 16 * sizeof(uint8_t);
 
-    uint8_t const size = 16 * sizeof(uint8_t*);
-
-    for (int i = 0; i < 10; ++i) {
-        Ks[i] = malloc(size);
-
-        if (Ks[i] == NULL) {
-            for (int j = 0; j < i; ++j) {
-                free(Ks[j]);
-            }
-            free(Ks);
-
-            return -1;
-        }
-    }
-
-    gen_keys(key, Ks);
     memcpy(data_out, data_in, size);
 
     for (int i = 0; i < 9; ++i) {
@@ -138,11 +140,11 @@ int encrypt_data(uint8_t const *key, uint8_t const *data_in, uint8_t *data_out) 
         L_map(data_out);
     }
     X_map((uint64_t*)Ks[9], (uint64_t*)data_out);
+}
 
+void finalize(uint8_t ***Ks) {
     for (int i = 0; i < 10; ++i) {
-        free(Ks[i]);
+        free((*Ks)[i]);
     }
-    free(Ks);
-
-    return 0;
+    free(*Ks);
 }
