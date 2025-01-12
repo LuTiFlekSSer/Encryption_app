@@ -24,6 +24,9 @@ const uint8_t PI_TABLE[256] = {
     32, 113, 103, 164, 45, 43, 9, 91, 203, 155, 37, 208, 190, 229, 108, 82,
     89, 166, 116, 210, 230, 244, 180, 192, 209, 102, 175, 194, 57, 75, 99, 182
 };
+uint8_t MASK = (uint8_t)1 << 7;
+uint8_t MULT_TABLE[256][256],
+        Z_TABLE[16][16] = {0};
 
 uint8_t mult(uint8_t a, uint8_t b) {
     uint8_t prod = 0;
@@ -33,7 +36,7 @@ uint8_t mult(uint8_t a, uint8_t b) {
             prod ^= a;
         }
 
-        uint8_t const hi_bit_set = a & 0x80;
+        uint8_t const hi_bit_set = a & MASK;
 
         a <<= 1;
         if (hi_bit_set) {
@@ -44,6 +47,24 @@ uint8_t mult(uint8_t a, uint8_t b) {
     }
 
     return prod;
+}
+
+
+void init() {
+    for (int i = 0; i < 256; ++i) {
+        for (int j = 0; j < 256; ++j) {
+            MULT_TABLE[i][j] = mult(i, j);
+        }
+    }
+
+    for (int i = 0; i < 15; ++i) {
+        Z_TABLE[i][i + 1] = 1;
+    }
+
+    for (int i = 0; i < 16; ++i) {
+        Z_TABLE[i][0] = L_SERIES[i];
+    }
+    //todo возвезсти в 16 степень
 }
 
 void L_map(uint8_t *vec) {
@@ -70,7 +91,23 @@ void X_map(uint64_t const *a, uint64_t *b) {
     b[1] ^= a[1];
 }
 
-int init(uint8_t const *key, uint8_t ***Ks) {
+void LS_map(const uint8_t *vec, uint8_t *vec_out) {
+    uint8_t buf[16];
+
+    for (int i = 0; i < 16; ++i) {
+        vec_out[i] = MULT_TABLE[PI_TABLE[vec[0]]][Z_TABLE[0][15 - i]];
+    }
+
+    for (int i = 1; i < 16; ++i) {
+        for (int j = 0; j < 16; ++j) {
+            buf[j] = MULT_TABLE[PI_TABLE[vec[i]]][Z_TABLE[i][15 - j]];
+        }
+        X_map((uint64_t*)buf, (uint64_t*)vec_out);
+    }
+}
+
+
+int generate_keys(uint8_t const *key, uint8_t ***Ks) {
     *Ks = malloc(10 * sizeof(uint8_t*));
     if (*Ks == NULL) {
         return -1;

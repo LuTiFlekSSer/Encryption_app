@@ -22,7 +22,8 @@ extern const custom_uint8_t POLYNOM;
 extern const uint8_t L_SERIES[16];
 extern const uint8_t PI_TABLE[256];
 
-int init(uint8_t const *key, uint8_t ***Ks);
+void init();
+int generate_keys(uint8_t const *key, uint8_t ***Ks);
 void encrypt_data(uint8_t const **Ks, uint8_t const *data_in, uint8_t *data_out);
 void finalize(uint8_t ***Ks);
 
