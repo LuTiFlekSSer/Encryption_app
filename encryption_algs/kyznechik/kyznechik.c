@@ -49,11 +49,25 @@ uint8_t mult(uint8_t a, uint8_t b) {
     return prod;
 }
 
+void sqr_mat(uint8_t mat[16][16]) {
+    uint8_t temp[16][16];
+
+    memcpy(temp, mat, 16 * 16 * sizeof(uint8_t));
+
+    for (int i = 0; i < 16; i++) {
+        for (int j = 0; j < 16; j++) {
+            mat[i][j] = 0;
+            for (int k = 0; k < 16; k++) {
+                mat[i][j] ^= mult(temp[i][k], temp[k][j]);
+            }
+        }
+    }
+}
 
 void init() {
     for (int i = 0; i < 256; ++i) {
         for (int j = 0; j < 256; ++j) {
-            MULT_TABLE[i][j] = mult(i, j);
+            MULT_TABLE[i][j] = mult((uint8_t)i, (uint8_t)j);
         }
     }
 
@@ -64,26 +78,11 @@ void init() {
     for (int i = 0; i < 16; ++i) {
         Z_TABLE[i][0] = L_SERIES[i];
     }
-    //todo возвезсти в 16 степень
-}
 
-void L_map(uint8_t *vec) {
-    for (int i = 0; i < 16; ++i) {
-        uint8_t last_byte = mult(vec[15], L_SERIES[15]);
-
-        for (int j = 14; j >= 0; --j) {
-            vec[j + 1] = vec[j];
-            last_byte ^= mult(vec[j], L_SERIES[j]);
-        }
-
-        vec[0] = last_byte;
-    }
-}
-
-void S_map(uint8_t *vec) {
-    for (int i = 0; i < 16; ++i) {
-        vec[i] = PI_TABLE[vec[i]];
-    }
+    sqr_mat(Z_TABLE);
+    sqr_mat(Z_TABLE);
+    sqr_mat(Z_TABLE);
+    sqr_mat(Z_TABLE);
 }
 
 void X_map(uint64_t const *a, uint64_t *b) {
@@ -91,21 +90,31 @@ void X_map(uint64_t const *a, uint64_t *b) {
     b[1] ^= a[1];
 }
 
-void LS_map(const uint8_t *vec, uint8_t *vec_out) {
-    uint8_t buf[16];
+void L_map(uint8_t *vec) {
+    uint8_t buf[16], ans[16] = {0};
 
     for (int i = 0; i < 16; ++i) {
-        vec_out[i] = MULT_TABLE[PI_TABLE[vec[0]]][Z_TABLE[0][15 - i]];
+        for (int j = 0; j < 16; ++j) {
+            buf[j] = MULT_TABLE[vec[i]][Z_TABLE[i][j]];
+        }
+        X_map((uint64_t*)buf, (uint64_t*)ans);
     }
 
-    for (int i = 1; i < 16; ++i) {
-        for (int j = 0; j < 16; ++j) {
-            buf[j] = MULT_TABLE[PI_TABLE[vec[i]]][Z_TABLE[i][15 - j]];
-        }
-        X_map((uint64_t*)buf, (uint64_t*)vec_out);
-    }
+    memcpy(vec, ans, 16 * sizeof(uint8_t));
 }
 
+void LS_map(uint8_t *vec) {
+    uint8_t buf[16], ans[16] = {0};
+
+    for (int i = 0; i < 16; ++i) {
+        for (int j = 0; j < 16; ++j) {
+            buf[j] = MULT_TABLE[PI_TABLE[vec[i]]][Z_TABLE[i][j]];
+        }
+        X_map((uint64_t*)buf, (uint64_t*)ans);
+    }
+
+    memcpy(vec, ans, 16 * sizeof(uint8_t));
+}
 
 int generate_keys(uint8_t const *key, uint8_t ***Ks) {
     *Ks = malloc(10 * sizeof(uint8_t*));
@@ -151,8 +160,7 @@ int generate_keys(uint8_t const *key, uint8_t ***Ks) {
         memcpy(K_buf, K_right, size);
 
         X_map((uint64_t*)K_left, (uint64_t*)Cs[i]);
-        S_map(Cs[i]);
-        L_map(Cs[i]);
+        LS_map(Cs[i]);
         X_map((uint64_t*)K_right, (uint64_t*)Cs[i]);
 
         memcpy(K_right, K_left, size);
@@ -173,8 +181,7 @@ void encrypt_data(uint8_t const **Ks, uint8_t const *data_in, uint8_t *data_out)
 
     for (int i = 0; i < 9; ++i) {
         X_map((uint64_t*)Ks[i], (uint64_t*)data_out);
-        S_map(data_out);
-        L_map(data_out);
+        LS_map(data_out);
     }
     X_map((uint64_t*)Ks[9], (uint64_t*)data_out);
 }
