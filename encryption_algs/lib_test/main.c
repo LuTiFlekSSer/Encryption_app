@@ -22,14 +22,14 @@ int main() {
     }
     printf("\n");
 
-    clock_t start = clock();
-    int const iters = 100000;
-    for (int i = 0; i < iters; ++i) {
-        encrypt_data((uint8_t const **)Ks, text, text);
-    }
-    clock_t end = clock();
-    double seconds = (double)(end - start) / CLOCKS_PER_SEC;
-    printf("%lf\n", seconds);
+    // clock_t start = clock();
+    // int const iters = 100000;
+    // for (int i = 0; i < iters; ++i) {
+    //     encrypt_data((uint8_t const **)Ks, text, text);
+    // }
+    // clock_t end = clock();
+    // double seconds = (double)(end - start) / CLOCKS_PER_SEC;
+    // printf("%lf\n", seconds);
 
     finalize(&Ks);
     return 0;
