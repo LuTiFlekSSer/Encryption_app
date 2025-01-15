@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include <emmintrin.h>
 
 const custom_uint8_t POLYNOM = {.bit = 1, 1, 0, 0, 0, 0, 1, 1};
 const uint8_t L_SERIES[16] = {148, 32, 133, 16, 194, 192, 1, 251, 1, 192, 194, 16, 133, 32, 148, 1};
@@ -27,6 +28,7 @@ const uint8_t PI_TABLE[256] = {
 uint8_t MASK = (uint8_t)1 << 7;
 uint8_t MULT_TABLE[256][256],
         Z_TABLE[16][16] = {0};
+__uint128_t LUT_TABLE[16][256];
 
 uint8_t mult(uint8_t a, uint8_t b) {
     uint8_t prod = 0;
@@ -64,6 +66,30 @@ void sqr_mat(uint8_t mat[16][16]) {
     }
 }
 
+void generate_lut_table() {
+    for (int i = 0; i < 16; ++i) {
+        for (int j = 0; j < 256; ++j) {
+            LUT_TABLE[i][j] =
+                (__uint128_t)MULT_TABLE[PI_TABLE[j]][Z_TABLE[i][15]] << 120 |
+                (__uint128_t)MULT_TABLE[PI_TABLE[j]][Z_TABLE[i][14]] << 112 |
+                (__uint128_t)MULT_TABLE[PI_TABLE[j]][Z_TABLE[i][13]] << 104 |
+                (__uint128_t)MULT_TABLE[PI_TABLE[j]][Z_TABLE[i][12]] << 96 |
+                (__uint128_t)MULT_TABLE[PI_TABLE[j]][Z_TABLE[i][11]] << 88 |
+                (__uint128_t)MULT_TABLE[PI_TABLE[j]][Z_TABLE[i][10]] << 80 |
+                (__uint128_t)MULT_TABLE[PI_TABLE[j]][Z_TABLE[i][9]] << 72 |
+                (__uint128_t)MULT_TABLE[PI_TABLE[j]][Z_TABLE[i][8]] << 64 |
+                (__uint128_t)MULT_TABLE[PI_TABLE[j]][Z_TABLE[i][7]] << 56 |
+                (__uint128_t)MULT_TABLE[PI_TABLE[j]][Z_TABLE[i][6]] << 48 |
+                (__uint128_t)MULT_TABLE[PI_TABLE[j]][Z_TABLE[i][5]] << 40 |
+                (__uint128_t)MULT_TABLE[PI_TABLE[j]][Z_TABLE[i][4]] << 32 |
+                (__uint128_t)MULT_TABLE[PI_TABLE[j]][Z_TABLE[i][3]] << 24 |
+                (__uint128_t)MULT_TABLE[PI_TABLE[j]][Z_TABLE[i][2]] << 16 |
+                (__uint128_t)MULT_TABLE[PI_TABLE[j]][Z_TABLE[i][1]] << 8 |
+                (__uint128_t)MULT_TABLE[PI_TABLE[j]][Z_TABLE[i][0]];
+        }
+    }
+}
+
 void init() {
     for (int i = 0; i < 256; ++i) {
         for (int j = 0; j < 256; ++j) {
@@ -83,6 +109,8 @@ void init() {
     sqr_mat(Z_TABLE);
     sqr_mat(Z_TABLE);
     sqr_mat(Z_TABLE);
+
+    generate_lut_table();
 }
 
 void X_map(uint64_t const *a, uint64_t *b) {
@@ -104,16 +132,13 @@ void L_map(uint8_t *vec) {
 }
 
 void LS_map(uint8_t *vec) {
-    uint8_t buf[16], ans[16] = {0};
+    __uint128_t ans = 0;
 
     for (int i = 0; i < 16; ++i) {
-        for (int j = 0; j < 16; ++j) {
-            buf[j] = MULT_TABLE[PI_TABLE[vec[i]]][Z_TABLE[i][j]];
-        }
-        X_map((uint64_t*)buf, (uint64_t*)ans);
+        X_map((uint64_t*)&LUT_TABLE[i][vec[i]], (uint64_t*)&ans);
     }
 
-    memcpy(vec, ans, 16 * sizeof(uint8_t));
+    memcpy(vec, &ans, 16 * sizeof(uint8_t));
 }
 
 int generate_keys(uint8_t const *key, uint8_t ***Ks) {

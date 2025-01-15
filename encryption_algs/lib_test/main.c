@@ -12,7 +12,7 @@ int main() {
             text[] = {
                 80, 69, 78, 68, 79, 68, 83, 73, 32, 83, 79, 83, 65, 84, 33, 33
             };
-
+//8F34299CE551D1A744F9AD4BA0F3FCD6
     uint8_t **Ks = NULL;
     generate_keys(key, &Ks);
     encrypt_data((uint8_t const **)Ks, text, text);
