@@ -3,7 +3,6 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-#include <emmintrin.h>
 
 const custom_uint8_t POLYNOM = {.bit = 1, 1, 0, 0, 0, 0, 1, 1};
 const uint8_t L_SERIES[16] = {148, 32, 133, 16, 194, 192, 1, 251, 1, 192, 194, 16, 133, 32, 148, 1};
@@ -29,6 +28,7 @@ uint8_t MASK = (uint8_t)1 << 7;
 uint8_t MULT_TABLE[256][256],
         Z_TABLE[16][16] = {0};
 __uint128_t LUT_TABLE[16][256];
+uint8_t const BLOCK_SIZE = 16 * sizeof(uint8_t);
 
 uint8_t mult(uint8_t a, uint8_t b) {
     uint8_t prod = 0;
@@ -54,7 +54,7 @@ uint8_t mult(uint8_t a, uint8_t b) {
 void sqr_mat(uint8_t mat[16][16]) {
     uint8_t temp[16][16];
 
-    memcpy(temp, mat, 16 * 16 * sizeof(uint8_t));
+    memcpy(temp, mat, 16 * BLOCK_SIZE);
 
     for (int i = 0; i < 16; i++) {
         for (int j = 0; j < 16; j++) {
@@ -147,10 +147,8 @@ int generate_keys(uint8_t const *key, uint8_t ***Ks) {
         return -1;
     }
 
-    uint8_t const size = 16 * sizeof(uint8_t);
-
     for (int i = 0; i < 10; ++i) {
-        (*Ks)[i] = malloc(size);
+        (*Ks)[i] = malloc(BLOCK_SIZE);
 
         if ((*Ks)[i] == NULL) {
             for (int j = 0; j < i; ++j) {
@@ -171,38 +169,36 @@ int generate_keys(uint8_t const *key, uint8_t ***Ks) {
 
     uint8_t K_left[16], K_right[16];
 
-    memcpy(K_left, key, size);
-    memcpy(K_right, key + size, size);
+    memcpy(K_left, key, BLOCK_SIZE);
+    memcpy(K_right, key + BLOCK_SIZE, BLOCK_SIZE);
 
     for (int i = 0; i < 32; ++i) {
         uint8_t K_buf[16];
 
         if (i % 8 == 0) {
-            memcpy((*Ks)[i / 4], K_left, size);
-            memcpy((*Ks)[i / 4 + 1], K_right, size);
+            memcpy((*Ks)[i / 4], K_left, BLOCK_SIZE);
+            memcpy((*Ks)[i / 4 + 1], K_right, BLOCK_SIZE);
         }
 
-        memcpy(K_buf, K_right, size);
+        memcpy(K_buf, K_right, BLOCK_SIZE);
 
         X_map((uint64_t*)K_left, (uint64_t*)Cs[i]);
         LS_map(Cs[i]);
         X_map((uint64_t*)K_right, (uint64_t*)Cs[i]);
 
-        memcpy(K_right, K_left, size);
-        memcpy(K_left, Cs[i], size);
+        memcpy(K_right, K_left, BLOCK_SIZE);
+        memcpy(K_left, Cs[i], BLOCK_SIZE);
     }
 
-    memcpy((*Ks)[8], K_left, size);
-    memcpy((*Ks)[9], K_right, size);
+    memcpy((*Ks)[8], K_left, BLOCK_SIZE);
+    memcpy((*Ks)[9], K_right, BLOCK_SIZE);
 
     return 0;
 }
 
 
 void encrypt_data(uint8_t const **Ks, uint8_t const *data_in, uint8_t *data_out) {
-    uint8_t const size = 16 * sizeof(uint8_t);
-
-    memcpy(data_out, data_in, size);
+    memcpy(data_out, data_in, BLOCK_SIZE);
 
     for (int i = 0; i < 9; ++i) {
         X_map((uint64_t*)Ks[i], (uint64_t*)data_out);
