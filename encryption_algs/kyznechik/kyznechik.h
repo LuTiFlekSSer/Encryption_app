@@ -25,6 +25,7 @@ extern const uint8_t PI_TABLE[256];
 void init();
 int generate_keys(uint8_t const *key, uint8_t ***Ks);
 void encrypt_data(uint8_t const **Ks, uint8_t const *data_in, uint8_t *data_out);
-void finalize(uint8_t ***Ks);
+void decrypt_data(uint8_t const **Ks, uint8_t const *data_in, uint8_t *data_out);
+void finalize(uint8_t **Ks);
 
 #endif

@@ -12,15 +12,9 @@ int main() {
             text[] = {
                 80, 69, 78, 68, 79, 68, 83, 73, 32, 83, 79, 83, 65, 84, 33, 33
             };
-//8F34299CE551D1A744F9AD4BA0F3FCD6
     uint8_t **Ks = NULL;
     generate_keys(key, &Ks);
-    encrypt_data((uint8_t const **)Ks, text, text);
 
-    for (int i = 0; i < 16; ++i) {
-        printf("%02X", text[i]);
-    }
-    printf("\n");
 
     clock_t start = clock();
     int const iters = 10000000;
@@ -29,8 +23,16 @@ int main() {
     }
     clock_t end = clock();
     double seconds = (double)(end - start) / CLOCKS_PER_SEC;
-    printf("%lf\n", seconds);
+    printf("%lf\n", 16 * iters / seconds / 1024 / 1024);
 
-    finalize(&Ks);
+    start = clock();
+    for (int i = 0; i < iters; ++i) {
+        decrypt_data(Ks, text, text);
+    }
+    end = clock();
+    seconds = (double)(end - start) / CLOCKS_PER_SEC;
+    printf("%lf\n",  16 * iters / seconds / 1024 / 1024);
+
+    finalize(Ks);
     return 0;
 }
