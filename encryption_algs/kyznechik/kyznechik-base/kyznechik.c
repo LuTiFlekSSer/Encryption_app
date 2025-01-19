@@ -190,7 +190,7 @@ void L_map(uint8_t *vec) {
         X_map((uint64_t*)buf, (uint64_t*)ans);
     }
 
-    memcpy(vec, ans, 16 * sizeof(uint8_t));
+    memcpy(vec, ans, BLOCK_SIZE);
 }
 
 void L_map_inverse(uint8_t *vec) {
@@ -203,7 +203,7 @@ void L_map_inverse(uint8_t *vec) {
         X_map((uint64_t*)buf, (uint64_t*)ans);
     }
 
-    memcpy(vec, ans, 16 * sizeof(uint8_t));
+    memcpy(vec, ans, BLOCK_SIZE);
 }
 
 void LS_map(uint8_t *vec) {
@@ -213,7 +213,7 @@ void LS_map(uint8_t *vec) {
         X_map((uint64_t*)&LUT_TABLE[i][vec[i]], (uint64_t*)&ans);
     }
 
-    memcpy(vec, &ans, 16 * sizeof(uint8_t));
+    memcpy(vec, &ans, BLOCK_SIZE);
 }
 
 void LS_map_inverse(uint8_t *vec) {
@@ -223,7 +223,7 @@ void LS_map_inverse(uint8_t *vec) {
         X_map((uint64_t*)&LUT_TABLE_INVERSE[i][vec[i]], (uint64_t*)&ans);
     }
 
-    memcpy(vec, &ans, 16 * sizeof(uint8_t));
+    memcpy(vec, &ans, BLOCK_SIZE);
 }
 
 int generate_keys(uint8_t const *key, uint8_t ***Ks) {
@@ -288,7 +288,6 @@ int generate_keys(uint8_t const *key, uint8_t ***Ks) {
 
     return 0;
 }
-
 
 void encrypt_data(uint8_t const **Ks, uint8_t const *data_in, uint8_t *data_out) {
     memcpy(data_out, data_in, BLOCK_SIZE);

@@ -1,7 +1,11 @@
-#include "stdio.h"
+#include <stdio.h>
+
+#include "kyznechik-ecb.h"
 #include "kyznechik.h"
 #include "stdint.h"
 #include "time.h"
+
+#include "utils.h"
 
 int main() {
     init();
@@ -15,23 +19,32 @@ int main() {
     uint8_t **Ks = NULL;
     generate_keys(key, &Ks);
 
+    int result = encrypt_kyznechik_ecb(
+        "../../../test.txt",
+        "C:\\",
+        key,
+        1
+    );
 
-    clock_t start = clock();
-    int const iters = 10000000;
-    for (int i = 0; i < iters; ++i) {
-        encrypt_data(Ks, text, text);
-    }
-    clock_t end = clock();
-    double seconds = (double)(end - start) / CLOCKS_PER_SEC;
-    printf("%lf\n", 16 * iters / seconds / 1024 / 1024);
+    printf("%d\n", result);
 
-    start = clock();
-    for (int i = 0; i < iters; ++i) {
-        decrypt_data(Ks, text, text);
-    }
-    end = clock();
-    seconds = (double)(end - start) / CLOCKS_PER_SEC;
-    printf("%lf\n",  16 * iters / seconds / 1024 / 1024);
+    //
+    // clock_t start = clock();
+    // int const iters = 10000000;
+    // for (int i = 0; i < iters; ++i) {
+    //     encrypt_data(Ks, text, text);
+    // }
+    // clock_t end = clock();
+    // double seconds = (double)(end - start) / CLOCKS_PER_SEC;
+    // printf("%lf\n", 16 * iters / seconds / 1024 / 1024);
+    //
+    // start = clock();
+    // for (int i = 0; i < iters; ++i) {
+    //     decrypt_data(Ks, text, text);
+    // }
+    // end = clock();
+    // seconds = (double)(end - start) / CLOCKS_PER_SEC;
+    // printf("%lf\n", 16 * iters / seconds / 1024 / 1024);
 
     finalize(Ks);
     return 0;
