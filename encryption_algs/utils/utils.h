@@ -29,7 +29,7 @@ typedef struct {
     uint8_t error;
 } func_result;
 
-func_result get_disk_free_spase(const uint8_t *disk_name);
+func_result get_disk_free_space(const uint8_t *disk_name);
 func_result get_file_size(HANDLE file);
 
 func_result write_block_to_file(LPCVOID block_info);

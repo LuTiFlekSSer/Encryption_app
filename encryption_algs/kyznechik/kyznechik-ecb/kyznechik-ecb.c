@@ -12,7 +12,7 @@ uint8_t encrypt_kyznechik_ecb(
 ) {
     //todo проверка что флешку не вытащили при записи
     // todo аргумент для выходного файла
-    func_result const disk_space = get_disk_free_spase(disk_name);
+    func_result const disk_space = get_disk_free_space(disk_name);
     if (disk_space.error) {
         return 1; // Не удалось получить информацию о диске
     }

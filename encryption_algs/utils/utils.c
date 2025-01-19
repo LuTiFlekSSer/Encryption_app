@@ -3,7 +3,7 @@
 #include <windows.h>
 
 
-func_result get_disk_free_spase(const uint8_t *disk_name) {
+func_result get_disk_free_space(const uint8_t *disk_name) {
     ULARGE_INTEGER free_bytes_available;
 
     int const result = GetDiskFreeSpaceEx(
