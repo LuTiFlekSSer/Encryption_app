@@ -2,7 +2,6 @@
 
 #include <windows.h>
 
-
 func_result get_disk_free_space(const uint8_t *disk_name) {
     ULARGE_INTEGER free_bytes_available;
 
@@ -49,7 +48,7 @@ func_result write_block_to_file(LPCVOID const block_info) {
     }
 
     WaitForSingleObject(overlapped.hEvent, INFINITE);
-    GetOverlappedResult(block->file, &overlapped, &written_bytes, FALSE);
+    GetOverlappedResult(block->file, &overlapped, &written_bytes, TRUE);
 
     return (func_result){written_bytes, 0};
 }
@@ -72,7 +71,7 @@ func_result read_block_from_file(LPCVOID const block_info) {
     }
 
     WaitForSingleObject(overlapped.hEvent, INFINITE);
-    GetOverlappedResult(block->file, &overlapped, &read_bytes, FALSE);
+    GetOverlappedResult(block->file, &overlapped, &read_bytes, TRUE);
 
     return (func_result){read_bytes, 0};
 }
@@ -105,4 +104,21 @@ func_result write_metadata_to_file(
     }
 
     return (func_result){all_written_bytes + result.result, 0};
+}
+
+
+void close_files(HANDLE file1, HANDLE file2) {
+    if (file1 == file2) {
+        if (file1 != INVALID_HANDLE_VALUE) {
+            CloseHandle(file1);
+        }
+    }
+
+    if (file1 != INVALID_HANDLE_VALUE) {
+        CloseHandle(file1);
+    }
+
+    if (file2 != INVALID_HANDLE_VALUE) {
+        CloseHandle(file2);
+    }
 }

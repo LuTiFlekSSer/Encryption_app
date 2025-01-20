@@ -18,12 +18,16 @@ int main() {
             };
     uint8_t **Ks = NULL;
     generate_keys(key, &Ks);
+    uint64_t curr, total;
 
     int result = encrypt_kyznechik_ecb(
-        "../../../test.txt",
+        "../../../input.txt",
         "C:\\",
+        "../../../output.txt",
         key,
-        1
+        1,
+        &curr,
+        &total
     );
 
     printf("%d\n", result);

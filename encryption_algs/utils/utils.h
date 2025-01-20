@@ -43,4 +43,6 @@ func_result write_metadata_to_file(
     uint8_t const *cipher_info
 );
 
+void close_files(HANDLE file1, HANDLE file2);
+
 #endif
