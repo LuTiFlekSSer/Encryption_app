@@ -4,12 +4,24 @@
 
 #include "utils.h"
 
+
+DWORD WINAPI encrypt_kyznechik_ecb_thread(LPVOID raw_data) {
+    thread_data const *data = raw_data; // todo не забыть шаг умножить на 16
+    file_block_info input_file_info = (file_block_info){.file = data->input_file, .data_size = 16},
+                    output_file_info = (file_block_info){.file = data->output_file, .data_size = 16};
+    for (uint64_t i = data->start; i < data->end; ++i) {
+        input_file_info.offset = output_file_info.offset = i * 16;
+        func_result result = read_block_from_file(&input_file_info);
+
+    }
+}
+
 uint8_t encrypt_kyznechik_ecb(
     const uint8_t *file_in_path,
     const uint8_t *disk_out_name,
     const uint8_t *file_out_path,
     const uint8_t *key,
-    uint16_t threads,
+    uint16_t const num_threads,
     uint64_t *current_step,
     uint64_t *total_steps
 ) {
@@ -58,7 +70,7 @@ uint8_t encrypt_kyznechik_ecb(
                   delta[16] = {1},
                   after_file[2] = {KYZNECHIK, ECB};
 
-    uint64_t const div = file_size.result / 16 + 1;
+    *total_steps = file_size.result / 16 + 1;
 
     if (input_file != output_file) {
         if (disk_space.result < file_size.result + 16 - mod + 2) {
@@ -100,7 +112,43 @@ uint8_t encrypt_kyznechik_ecb(
         return 5; // Не удалось записать метаданные
     }
 
-    close_files(input_file, output_file);
+    thread_data *threads_data = calloc(num_threads, sizeof(thread_data));
+    CRITICAL_SECTION lock;
+    DWORD *threads_id = calloc(num_threads, sizeof(DWORD));
+    InitializeCriticalSection(&lock);
 
+    uint64_t const length = (*total_steps) / num_threads;
+    for (uint16_t i = 0; i < num_threads - 1; ++i) {
+        threads_data[i] = (thread_data){
+            .start = (uint64_t)i * length, .end = (uint64_t)(i + 1) * length, .current_step = current_step,
+            .lock = &lock, .input_file = input_file, .output_file = output_file
+        };
+    }
+    threads_data[num_threads - 1] = (thread_data){
+        .start = (uint64_t)(num_threads - 1) * length, .end = (*total_steps), .current_step = current_step,
+        .lock = &lock, .input_file = input_file, .output_file = output_file
+    };
+    HANDLE *threads = calloc(num_threads, sizeof(HANDLE));
+
+    for (uint16_t i = 0; i < num_threads; ++i) {
+        threads[i] = CreateThread(
+            NULL,
+            0,
+            encrypt_kyznechik_ecb_thread,
+            &threads_data[i],
+            0,
+            &threads_id[i]
+        );
+    }
+
+    for (uint16_t i = 0; i < num_threads; ++i) {
+        CloseHandle(threads[i]);
+    }
+
+    free(threads_data);
+    free(threads);
+    free(threads_id);
+    DeleteCriticalSection(&lock);
+    close_files(input_file, output_file);
     return 0;
 }

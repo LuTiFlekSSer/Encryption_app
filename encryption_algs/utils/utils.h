@@ -29,6 +29,14 @@ typedef struct {
     uint8_t error;
 } func_result;
 
+typedef struct {
+    uint64_t start, end;
+    uint64_t *current_step;
+    CRITICAL_SECTION *lock;
+    HANDLE input_file, output_file;
+} thread_data;
+
+
 func_result get_disk_free_space(const uint8_t *disk_name);
 func_result get_file_size(HANDLE file);
 
