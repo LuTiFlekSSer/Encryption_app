@@ -1,12 +1,13 @@
 #include "utils.h"
 
 #include <windows.h>
+#include <iso646.h>
 
-func_result get_disk_free_space(const uint8_t *disk_name) {
+func_result get_disk_free_space(const WCHAR *disk_name) {
     ULARGE_INTEGER free_bytes_available;
 
-    int const result = GetDiskFreeSpaceEx(
-        (LPSTR)disk_name,
+    int const result = GetDiskFreeSpaceExW(
+        (LPWSTR)disk_name,
         &free_bytes_available,
         NULL,
         NULL
@@ -106,6 +107,31 @@ func_result write_metadata_to_file(
     return (func_result){all_written_bytes + result.result, 0};
 }
 
+void open_files(const WCHAR *file_in_path, const WCHAR *file_out_path, HANDLE *input_file, HANDLE *output_file) {
+    *input_file = CreateFileW(
+        (LPWSTR)file_in_path,
+        GENERIC_READ | GENERIC_WRITE,
+        0,
+        NULL,
+        OPEN_EXISTING,
+        FILE_FLAG_OVERLAPPED,
+        NULL
+    );
+
+    if (strcmp((const char*)file_in_path, (const char*)file_out_path) == 0) {
+        *output_file = *input_file;
+    } else {
+        *output_file = CreateFileW(
+            (LPWSTR)file_out_path,
+            GENERIC_READ | GENERIC_WRITE,
+            0,
+            NULL,
+            TRUNCATE_EXISTING,
+            FILE_FLAG_OVERLAPPED,
+            NULL
+        );
+    }
+}
 
 void close_files(HANDLE file1, HANDLE file2) {
     if (file1 == file2) {
@@ -121,4 +147,72 @@ void close_files(HANDLE file1, HANDLE file2) {
     if (file2 != INVALID_HANDLE_VALUE) {
         CloseHandle(file2);
     }
+}
+
+uint8_t check_files(
+    HANDLE input_file,
+    HANDLE output_file,
+    const uint64_t free_disk_space,
+    const uint64_t file_size,
+    const uint64_t metadata_size
+) {
+    if (input_file != output_file) {
+        if (free_disk_space < file_size + metadata_size) {
+            close_files(input_file, output_file);
+            return 1; // Недостаточно места на диске
+        }
+
+        LARGE_INTEGER out_file_size;
+        out_file_size.QuadPart = (int64_t)file_size;
+
+        int result = SetFilePointerEx(output_file, out_file_size, NULL, FILE_BEGIN);
+        if (!result) {
+            close_files(input_file, output_file);
+            return 2; // ошибка при увеличении выходного файла
+        }
+
+        result = SetEndOfFile(output_file);
+        if (!result) {
+            close_files(input_file, output_file);
+            return 2; // ошибка при увеличении выходного файла
+        }
+    } else {
+        if (free_disk_space - file_size < metadata_size) {
+            close_files(input_file, output_file);
+            return 1; // Недостаточно места на диске
+        }
+    }
+
+    return 0;
+}
+
+uint8_t create_threads_data(uint16_t const num_threads, thread_data **threads_data, DWORD **threads_id,
+                            HANDLE **threads) {
+    *threads_data = calloc(num_threads, sizeof(thread_data));
+    *threads_id = calloc(num_threads, sizeof(DWORD));
+    *threads = calloc(num_threads, sizeof(HANDLE));
+
+    if (*threads_data == NULL or *threads_id == NULL or *threads == NULL) {
+        if (*threads_data != NULL) {
+            free(*threads_data);
+        }
+
+        if (*threads_id != NULL) {
+            free(*threads_id);
+        }
+
+        if (*threads != NULL) {
+            free(*threads);
+        }
+
+        return 1;
+    }
+
+    return 0;
+}
+
+void delete_threads_data(thread_data *threads_data, DWORD *threads_id, HANDLE *threads) {
+    free(threads_data);
+    free(threads);
+    free(threads_id);
 }

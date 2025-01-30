@@ -18,9 +18,9 @@ int main() {
     uint64_t curr, total;
 
     int result = encrypt_kyznechik_ecb(
-        "../../../input.txt",
-        "C:\\",
-        "../../../output.txt",
+        L"../../../input.txt",
+        L"C:\\",
+        L"../../../output.txt",
         key,
         1,
         &curr,

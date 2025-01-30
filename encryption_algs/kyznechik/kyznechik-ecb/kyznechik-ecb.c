@@ -1,6 +1,7 @@
 #include "kyznechik-ecb.h"
 
 #include <stdio.h>
+#include <iso646.h>
 
 #include "utils.h"
 
@@ -12,14 +13,13 @@ DWORD WINAPI encrypt_kyznechik_ecb_thread(LPVOID raw_data) {
     for (uint64_t i = data->start; i < data->end; ++i) {
         input_file_info.offset = output_file_info.offset = i * 16;
         func_result result = read_block_from_file(&input_file_info);
-
     }
 }
 
 uint8_t encrypt_kyznechik_ecb(
-    const uint8_t *file_in_path,
-    const uint8_t *disk_out_name,
-    const uint8_t *file_out_path,
+    const WCHAR *file_in_path,
+    const WCHAR *disk_out_name,
+    const WCHAR *file_out_path,
     const uint8_t *key,
     uint16_t const num_threads,
     uint64_t *current_step,
@@ -31,29 +31,8 @@ uint8_t encrypt_kyznechik_ecb(
         return 1; // Не удалось получить информацию о диске
     }
 
-    HANDLE input_file = CreateFile(
-               (LPSTR)file_in_path,
-               GENERIC_READ | GENERIC_WRITE,
-               0,
-               NULL,
-               OPEN_EXISTING,
-               FILE_FLAG_OVERLAPPED,
-               NULL
-           ), output_file;
-
-    if (strcmp((const char*)file_in_path, (const char*)file_out_path) == 0) {
-        output_file = input_file;
-    } else {
-        output_file = CreateFile(
-            (LPSTR)file_out_path,
-            GENERIC_READ | GENERIC_WRITE,
-            0,
-            NULL,
-            TRUNCATE_EXISTING,
-            FILE_FLAG_OVERLAPPED,
-            NULL
-        );
-    }
+    HANDLE input_file, output_file;
+    open_files(file_in_path, file_out_path, &input_file, &output_file);
 
     if (input_file == INVALID_HANDLE_VALUE || output_file == INVALID_HANDLE_VALUE) {
         close_files(input_file, output_file);
@@ -72,31 +51,14 @@ uint8_t encrypt_kyznechik_ecb(
 
     *total_steps = file_size.result / 16 + 1;
 
-    if (input_file != output_file) {
-        if (disk_space.result < file_size.result + 16 - mod + 2) {
-            close_files(input_file, output_file);
-            return 4; // Недостаточно места на диске
-        }
+    uint8_t files_check_result = check_files(input_file, output_file, disk_space.result,
+                                             file_size.result, 16 - mod + 2);
 
-        LARGE_INTEGER out_file_size;
-        out_file_size.QuadPart = (int64_t)file_size.result;
-
-        int result = SetFilePointerEx(output_file, out_file_size, NULL, FILE_BEGIN);
-        if (!result) {
-            close_files(input_file, output_file);
-            return 6; // ошибка при увеличении выходного файла
-        }
-
-        result = SetEndOfFile(output_file);
-        if (!result) {
-            close_files(input_file, output_file);
-            return 6; // ошибка при увеличении выходного файла
-        }
-    } else {
-        if (disk_space.result - file_size.result < 16 - mod + 2) {
-            close_files(input_file, output_file);
-            return 4; // Недостаточно места на диске
-        }
+    if (files_check_result == 1) {
+        return 4; // недостаточно места на диске
+    }
+    if (files_check_result == 2) {
+        return 5; // ошибка при увеличении выходного файла
     }
 
     func_result f_result = write_metadata_to_file(
@@ -109,12 +71,16 @@ uint8_t encrypt_kyznechik_ecb(
 
     if (f_result.error || f_result.result != 16 - mod + 2) {
         close_files(input_file, output_file);
-        return 5; // Не удалось записать метаданные
+        return 6; // Не удалось записать метаданные
     }
 
-    thread_data *threads_data = calloc(num_threads, sizeof(thread_data));
+    thread_data *threads_data;
+    DWORD *threads_id;
+    HANDLE *threads;
+
+    create_threads_data(num_threads, &threads_data, &threads_id, &threads);
+
     CRITICAL_SECTION lock;
-    DWORD *threads_id = calloc(num_threads, sizeof(DWORD));
     InitializeCriticalSection(&lock);
 
     uint64_t const length = (*total_steps) / num_threads;
@@ -128,7 +94,6 @@ uint8_t encrypt_kyznechik_ecb(
         .start = (uint64_t)(num_threads - 1) * length, .end = (*total_steps), .current_step = current_step,
         .lock = &lock, .input_file = input_file, .output_file = output_file
     };
-    HANDLE *threads = calloc(num_threads, sizeof(HANDLE));
 
     for (uint16_t i = 0; i < num_threads; ++i) {
         threads[i] = CreateThread(
@@ -141,13 +106,12 @@ uint8_t encrypt_kyznechik_ecb(
         );
     }
 
+    WaitForMultipleObjects(num_threads, threads, TRUE, INFINITE);
+
     for (uint16_t i = 0; i < num_threads; ++i) {
         CloseHandle(threads[i]);
     }
-
-    free(threads_data);
-    free(threads);
-    free(threads_id);
+    delete_threads_data(threads_data, threads_id, threads);
     DeleteCriticalSection(&lock);
     close_files(input_file, output_file);
     return 0;
