@@ -118,7 +118,7 @@ void open_files(const WCHAR *file_in_path, const WCHAR *file_out_path, HANDLE *i
         NULL
     );
 
-    if (strcmp((const char*)file_in_path, (const char*)file_out_path) == 0) {
+    if (lstrcmpW(file_in_path, file_out_path) == 0) {
         *output_file = *input_file;
     } else {
         *output_file = CreateFileW(

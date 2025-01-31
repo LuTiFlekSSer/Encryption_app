@@ -1,21 +1,13 @@
 cmake_minimum_required(VERSION 3.20)
-project(main C)
+project(lib_test C)
 
 set(CMAKE_C_STANDARD 11)
 
-add_subdirectory(../kyznechik/kyznechik-base ./kyznechik-base)
-include_directories(../kyznechik/kyznechik-base)
-
-add_subdirectory(../kyznechik/kyznechik-ecb ./kyznechik-ecb)
 include_directories(../kyznechik/kyznechik-ecb)
 
-include_directories(../utils)
-
 add_executable(
-        main
+        lib_test
         main.c
 )
 
-target_link_libraries(main kyznechik-base)
-target_link_libraries(main kyznechik-ecb)
-target_link_libraries(main utils)
+target_link_libraries(lib_test PRIVATE kyznechik-ecb)

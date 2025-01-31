@@ -132,7 +132,7 @@ void generate_lut_table() {
     }
 }
 
-void init() {
+void kyznechik_init() {
     for (int i = 0; i < 256; ++i) {
         for (int j = 0; j < 256; ++j) {
             MULT_TABLE[i][j] = mult((uint8_t)i, (uint8_t)j);
@@ -226,7 +226,7 @@ void LS_map_inverse(uint8_t *vec) {
     memcpy(vec, &ans, BLOCK_SIZE);
 }
 
-int generate_keys(uint8_t const *key, uint8_t ***Ks) {
+int kyznechik_generate_keys(uint8_t const *key, uint8_t ***Ks) {
     *Ks = malloc(19 * sizeof(uint8_t*));
     if (*Ks == NULL) {
         return -1;
@@ -289,7 +289,7 @@ int generate_keys(uint8_t const *key, uint8_t ***Ks) {
     return 0;
 }
 
-void encrypt_data(uint8_t const **Ks, uint8_t const *data_in, uint8_t *data_out) {
+void kyznechik_encrypt_data(uint8_t const **Ks, uint8_t const *data_in, uint8_t *data_out) {
     memcpy(data_out, data_in, BLOCK_SIZE);
 
     for (int i = 0; i < 9; ++i) {
@@ -299,7 +299,7 @@ void encrypt_data(uint8_t const **Ks, uint8_t const *data_in, uint8_t *data_out)
     X_map((uint64_t*)Ks[9], (uint64_t*)data_out);
 }
 
-void decrypt_data(uint8_t const **Ks, uint8_t const *data_in, uint8_t *data_out) {
+void kyznechik_decrypt_data(uint8_t const **Ks, uint8_t const *data_in, uint8_t *data_out) {
     memcpy(data_out, data_in, BLOCK_SIZE);
 
     S_map(data_out);
@@ -311,7 +311,7 @@ void decrypt_data(uint8_t const **Ks, uint8_t const *data_in, uint8_t *data_out)
     X_map((uint64_t*)Ks[0], (uint64_t*)data_out);
 }
 
-void finalize(uint8_t **Ks) {
+void kyznechik_finalize(uint8_t **Ks) {
     for (int i = 0; i < 19; ++i) {
         free(Ks[i]);
     }

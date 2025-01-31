@@ -3,7 +3,7 @@ project(kyznechik-ecb C)
 
 set(CMAKE_C_STANDARD 11)
 
-add_subdirectory(../../utils ./utils)
+include_directories(../kyznechik-base)
 include_directories(../../utils)
 
 add_library(
@@ -13,6 +13,6 @@ add_library(
         kyznechik-ecb.h
 )
 
-target_link_libraries(kyznechik-ecb utils)
+target_link_libraries(kyznechik-ecb PRIVATE utils kyznechik-base)
 
-set(LIBRARY_OUTPUT_PATH "${CMAKE_HOME_DIRECTORY}/../libs")
+#set(LIBRARY_OUTPUT_PATH "${CMAKE_HOME_DIRECTORY}/../libs")

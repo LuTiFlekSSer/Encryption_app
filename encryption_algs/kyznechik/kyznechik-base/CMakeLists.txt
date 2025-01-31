@@ -10,7 +10,7 @@ add_library(
         kyznechik.h
 )
 
-set(LIBRARY_OUTPUT_PATH "${CMAKE_HOME_DIRECTORY}/../libs")
+#set(LIBRARY_OUTPUT_PATH "${CMAKE_HOME_DIRECTORY}/../libs")
 
 #if(WIN32)
 #    add_custom_command(TARGET kyznechik POST_BUILD

@@ -34,6 +34,7 @@ typedef struct {
     uint64_t *current_step;
     CRITICAL_SECTION *lock;
     HANDLE input_file, output_file;
+    uint8_t *error, **Ks;
 } thread_data;
 
 

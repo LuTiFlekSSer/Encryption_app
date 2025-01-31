@@ -10,4 +10,4 @@ add_library(
         utils.h
 )
 
-set(LIBRARY_OUTPUT_PATH "${CMAKE_HOME_DIRECTORY}/../libs")
+#set(LIBRARY_OUTPUT_PATH "${CMAKE_HOME_DIRECTORY}/../libs")
