@@ -107,6 +107,45 @@ func_result write_metadata_to_file(
     return (func_result){all_written_bytes + result.result, 0};
 }
 
+uint8_t read_cipher_from_file(
+    const WCHAR *file_name,
+    uint8_t *cipher_type,
+    uint8_t *cipher_mode
+) {
+    HANDLE file;
+    open_files(file_name, file_name, &file, &file);
+
+    if (file == INVALID_HANDLE_VALUE) {
+        return 1; //Ошибка при работе с файлом
+    }
+    func_result const size = get_file_size(file);
+
+    if (size.error) {
+        return 1; //Ошибка при работе с файлом
+    }
+
+    if (size.result < 2) {
+        return 2; //Файл не зашифрован
+    }
+
+    uint8_t cipher[2];
+    file_block_info const block_info = {.file = file, .offset = size.result - 2, .data = cipher, .data_size = 2};
+    func_result const result = read_block_from_file(&block_info);
+
+    if (result.error) {
+        return 1; //Ошибка при работе с файлом
+    }
+
+    if (cipher[0] >= CIPHER_TYPES or cipher[1] >= CIPHER_MODES) {
+        return 2; //Файл не зашифрован
+    }
+    *cipher_type = cipher[0];
+    *cipher_mode = cipher[1];
+
+    return 0;
+}
+
+
 void open_files(const WCHAR *file_in_path, const WCHAR *file_out_path, HANDLE *input_file, HANDLE *output_file) {
     *input_file = CreateFileW(
         (LPWSTR)file_in_path,
@@ -177,7 +216,7 @@ uint8_t check_files(
             return 2; // ошибка при увеличении выходного файла
         }
     } else {
-        if (free_disk_space - file_size < metadata_size) {
+        if (free_disk_space < metadata_size + file_size) {
             close_files(input_file, output_file);
             return 1; // Недостаточно места на диске
         }

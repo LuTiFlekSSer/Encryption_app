@@ -13,14 +13,28 @@ int main() {
     int result = encrypt_kyznechik_ecb(
         L"../../input.txt",
         L"C:\\",
-        L"../../output.txt",
+        L"../../middle.txt",
         key,
-        2,
+        12,
         &curr,
         &total
     );
 
     printf("%d\n", result);
     printf("%llu %llu\n", curr, total);
+
+    result = decrypt_kyznechik_ecb(
+        L"../../middle.txt",
+        L"C:\\",
+        L"../../output.txt",
+        key,
+        12,
+        &curr,
+        &total
+    );
+
+    printf("%d\n", result);
+    printf("%llu %llu\n", curr, total);
+
     return 0;
 }

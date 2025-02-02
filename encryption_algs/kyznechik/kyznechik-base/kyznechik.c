@@ -48,6 +48,7 @@ uint8_t MULT_TABLE[256][256],
 __uint128_t LUT_TABLE[16][256],
             LUT_TABLE_INVERSE[16][256];
 uint8_t const BLOCK_SIZE = 16 * sizeof(uint8_t);
+uint8_t INITED = 0;
 
 uint8_t mult(uint8_t a, uint8_t b) {
     uint8_t prod = 0;
@@ -133,6 +134,10 @@ void generate_lut_table() {
 }
 
 void kyznechik_init() {
+    if (INITED++) {
+        return;
+    }
+
     for (int i = 0; i < 256; ++i) {
         for (int j = 0; j < 256; ++j) {
             MULT_TABLE[i][j] = mult((uint8_t)i, (uint8_t)j);

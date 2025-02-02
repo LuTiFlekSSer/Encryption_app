@@ -4,18 +4,27 @@
 #include <stdint.h>
 #include <windows.h>
 
-enum CIPHER_TYPE {
+#define CIPHER_TYPES 3
+
+typedef enum {
     KYZNECHIK = 0,
     MAGMA = 1,
     GOST_89 = 2
-};
+} CIPHER_TYPE;
 
-enum CIPHER_MODE {
+#define CIPHER_MODES 4
+
+typedef enum {
     ECB = 0,
     CBC = 1,
     CTR = 2,
     XTS = 3
-};
+} CIPHER_MODE;
+
+typedef enum {
+    ENCRYPT = 0,
+    DECRYPT = 1
+} CIPHER_FUNC_TYPE;
 
 typedef struct {
     HANDLE file;
@@ -35,6 +44,7 @@ typedef struct {
     CRITICAL_SECTION *lock;
     HANDLE input_file, output_file;
     uint8_t *error, **Ks;
+    CIPHER_FUNC_TYPE func_type;
 } thread_data;
 
 
@@ -50,6 +60,12 @@ func_result write_metadata_to_file(
     uint8_t const *metadata,
     uint8_t metadata_size,
     uint8_t const *cipher_info
+);
+
+uint8_t read_cipher_from_file(
+    const WCHAR *file_name,
+    uint8_t *cipher_type,
+    uint8_t *cipher_mode
 );
 
 void open_files(const WCHAR *file_in_path, const WCHAR *file_out_path, HANDLE *input_file, HANDLE *output_file);
