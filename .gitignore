@@ -13,5 +13,7 @@
 /encryption_algs/cmake-build-debug
 /encryption_algs/cmake-build-release
 
+/encryption_algs/libs/debug/*
+
 /encryption_algs/build-dir/*
 /encryption_algs/lib_test/libs/*
