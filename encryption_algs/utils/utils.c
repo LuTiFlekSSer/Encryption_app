@@ -37,6 +37,7 @@ func_result write_block_to_file(LPCVOID const block_info) {
     OVERLAPPED overlapped = {0};
     overlapped.Offset = (DWORD)(block->offset & 0xFFFFFFFF);
     overlapped.OffsetHigh = (DWORD)((block->offset >> 32) & 0xFFFFFFFF);
+    overlapped.hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
 
     DWORD written_bytes;
 
@@ -50,6 +51,7 @@ func_result write_block_to_file(LPCVOID const block_info) {
 
     WaitForSingleObject(overlapped.hEvent, INFINITE);
     GetOverlappedResult(block->file, &overlapped, &written_bytes, TRUE);
+    CloseHandle(overlapped.hEvent);
 
     return (func_result){written_bytes, 0};
 }
@@ -60,6 +62,7 @@ func_result read_block_from_file(LPCVOID const block_info) {
     OVERLAPPED overlapped = {0};
     overlapped.Offset = (DWORD)(block->offset & 0xFFFFFFFF);
     overlapped.OffsetHigh = (DWORD)((block->offset >> 32) & 0xFFFFFFFF);
+    overlapped.hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
 
     DWORD read_bytes;
 
@@ -73,6 +76,7 @@ func_result read_block_from_file(LPCVOID const block_info) {
 
     WaitForSingleObject(overlapped.hEvent, INFINITE);
     GetOverlappedResult(block->file, &overlapped, &read_bytes, TRUE);
+    CloseHandle(overlapped.hEvent);
 
     return (func_result){read_bytes, 0};
 }
