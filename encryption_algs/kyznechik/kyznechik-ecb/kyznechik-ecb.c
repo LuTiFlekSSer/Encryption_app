@@ -409,5 +409,4 @@ uint8_t decrypt_kyznechik_ecb(
     return 0;
 }
 
-// todo расшифровка не работает на файле 10гб (fsutil file createnew input.txt 10737418240)
 // todo что-то сделать с lock'ом для прогресс бара
