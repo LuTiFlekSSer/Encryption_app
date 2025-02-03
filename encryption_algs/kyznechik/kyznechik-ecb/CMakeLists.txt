@@ -14,5 +14,3 @@ add_library(
 )
 
 target_link_libraries(kyznechik-ecb PRIVATE utils kyznechik-base)
-
-#set(LIBRARY_OUTPUT_PATH "${CMAKE_HOME_DIRECTORY}/../libs")

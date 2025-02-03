@@ -11,9 +11,9 @@ int main() {
     uint64_t curr = 0, total = 0;
 
     int result = encrypt_kyznechik_ecb(
-        L"../../input.txt",
+        L"../../../input.txt",
         L"C:\\",
-        L"../../middle.txt",
+        L"../../../middle.txt",
         key,
         12,
         &curr,
@@ -24,9 +24,9 @@ int main() {
     printf("%llu %llu\n", curr, total);
 
     result = decrypt_kyznechik_ecb(
-        L"../../middle.txt",
+        L"../../../middle.txt",
         L"C:\\",
-        L"../../output.txt",
+        L"../../../output.txt",
         key,
         12,
         &curr,
