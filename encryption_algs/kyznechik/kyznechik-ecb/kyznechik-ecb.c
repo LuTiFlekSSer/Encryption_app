@@ -6,7 +6,7 @@
 #include "kyznechik.h"
 #include "utils.h"
 
-uint32_t BUF_SIZE = 1024 * 256;
+uint32_t BUF_SIZE = 1024 * 256 * 4 * 4;
 
 uint8_t process_block(
     const uint8_t **Ks,
@@ -14,9 +14,9 @@ uint8_t process_block(
     file_block_info const *output_file_info,
     uint64_t *current_step,
     void (*cipher_func)(uint8_t const **, uint8_t const *, uint8_t *),
-    CRITICAL_SECTION *lock
+    HANDLE event
 ) {
-    func_result result = read_block_from_file(input_file_info);
+    func_result result = read_block_from_file(input_file_info, event);
     if (result.error != 0) {
         return 1;
     }
@@ -25,14 +25,10 @@ uint8_t process_block(
         cipher_func(Ks, input_file_info->data + j, output_file_info->data + j);
     }
 
-    result = write_block_to_file(output_file_info);
+    result = write_block_to_file(output_file_info, event);
     if (result.error != 0) { // todo сохранять часть
         return 1;
     }
-
-    // EnterCriticalSection(lock);
-    // *current_step += input_file_info->data_size / 16;
-    // LeaveCriticalSection(lock);
 
     return 0;
 }
@@ -53,6 +49,13 @@ DWORD WINAPI kyznechik_ecb_thread(LPVOID raw_data) {
         return 2;
     }
 
+    HANDLE event = CreateEvent(NULL, TRUE, FALSE, NULL);
+    if (event == NULL) {
+        *(data->error) = 2;
+        free(buf);
+        return 2;
+    }
+
     uint64_t const total = (data->end - data->start) * 16 / BUF_SIZE,
                    mod = (data->end - data->start) * 16 % BUF_SIZE;
 
@@ -62,22 +65,35 @@ DWORD WINAPI kyznechik_ecb_thread(LPVOID raw_data) {
     for (uint64_t i = 0; i < total; ++i) {
         if (*(data->error) != 0) {
             free(buf);
+            CloseHandle(event);
             return 1;
         }
 
         input_file_info.offset = output_file_info.offset = BUF_SIZE * i + data->start * 16;
 
         if (process_block((const uint8_t**)data->Ks, &input_file_info, &output_file_info, data->current_step,
-                          cipher_func, data->lock) != 0) {
+                          cipher_func, event) != 0) {
             *(data->error) = 1;
             free(buf);
+            CloseHandle(event);
             return 1;
         }
+
+        if ((i + 1) % 256 == 0) {
+            EnterCriticalSection(data->lock);
+            (*data->current_step) += BUF_SIZE * 16;
+            LeaveCriticalSection(data->lock);
+        }
     }
+
+    EnterCriticalSection(data->lock);
+    (*data->current_step) += BUF_SIZE / 16 * (total % 256);
+    LeaveCriticalSection(data->lock);
 
     if (mod != 0) {
         if (*(data->error) != 0) {
             free(buf);
+            CloseHandle(event);
             return 1;
         }
 
@@ -85,26 +101,32 @@ DWORD WINAPI kyznechik_ecb_thread(LPVOID raw_data) {
         input_file_info.data_size = output_file_info.data_size = mod;
 
         if (process_block((const uint8_t**)data->Ks, &input_file_info, &output_file_info, data->current_step,
-                          cipher_func, data->lock) != 0) {
+                          cipher_func, event) != 0) {
             *(data->error) = 1;
             free(buf);
+            CloseHandle(event);
             return 1;
         }
+
+        EnterCriticalSection(data->lock);
+        (*data->current_step) += mod / 16;
+        LeaveCriticalSection(data->lock);
     }
 
     free(buf);
+    CloseHandle(event);
     return 0;
 }
 
 uint8_t encrypt_last_bytes(const uint8_t **Ks, file_block_info const *block_info) {
-    func_result f_result = read_block_from_file(block_info);
+    func_result f_result = read_block_from_file(block_info, NULL);
     if (f_result.error != 0) {
         return 1;
     }
 
     kyznechik_encrypt_data(Ks, block_info->data, block_info->data);
 
-    f_result = write_block_to_file(block_info);
+    f_result = write_block_to_file(block_info, NULL);
     if (f_result.error != 0) {
         return 1;
     }
@@ -146,12 +168,15 @@ uint8_t encrypt_kyznechik_ecb(
     uint8_t delta[16] = {1};
 
     if (mod != 0) {
-        func_result const f_result = read_block_from_file(&(file_block_info){
-            .file = input_file,
-            .offset = file_size.result - mod,
-            .data = delta,
-            .data_size = mod
-        });
+        func_result const f_result = read_block_from_file(
+            &(file_block_info){
+                .file = input_file,
+                .offset = file_size.result - mod,
+                .data = delta,
+                .data_size = mod
+            },
+            NULL
+        );
 
         if (f_result.error != 0) {
             close_files(input_file, output_file);
@@ -265,7 +290,7 @@ uint8_t encrypt_kyznechik_ecb(
 }
 
 uint8_t remove_last_bytes(file_block_info const *block_info) {
-    func_result const result = read_block_from_file(block_info);
+    func_result const result = read_block_from_file(block_info, NULL);
     if (result.error != 0) {
         return 1; // ошибка при чтении файла
     }
@@ -408,5 +433,3 @@ uint8_t decrypt_kyznechik_ecb(
 
     return 0;
 }
-
-// todo что-то сделать с lock'ом для прогресс бара

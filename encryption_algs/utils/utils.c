@@ -31,13 +31,18 @@ func_result get_file_size(HANDLE file) {
     return (func_result){((uint64_t)fileSizeHigh << 32) | fileSizeLow, 0};
 }
 
-func_result write_block_to_file(LPCVOID const block_info) {
+func_result write_block_to_file(LPCVOID const block_info, HANDLE event) {
     file_block_info const *block = (file_block_info*)block_info;
 
     OVERLAPPED overlapped = {0};
     overlapped.Offset = (DWORD)(block->offset & 0xFFFFFFFF);
     overlapped.OffsetHigh = (DWORD)((block->offset >> 32) & 0xFFFFFFFF);
-    overlapped.hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
+
+    if (event == NULL) {
+        overlapped.hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
+    } else {
+        overlapped.hEvent = event;
+    }
 
     DWORD written_bytes;
 
@@ -51,18 +56,26 @@ func_result write_block_to_file(LPCVOID const block_info) {
 
     WaitForSingleObject(overlapped.hEvent, INFINITE);
     GetOverlappedResult(block->file, &overlapped, &written_bytes, TRUE);
-    CloseHandle(overlapped.hEvent);
+
+    if (event == NULL) {
+        CloseHandle(overlapped.hEvent);
+    }
 
     return (func_result){written_bytes, 0};
 }
 
-func_result read_block_from_file(LPCVOID const block_info) {
+func_result read_block_from_file(LPCVOID const block_info, HANDLE event) {
     file_block_info const *block = (file_block_info*)block_info;
 
     OVERLAPPED overlapped = {0};
     overlapped.Offset = (DWORD)(block->offset & 0xFFFFFFFF);
     overlapped.OffsetHigh = (DWORD)((block->offset >> 32) & 0xFFFFFFFF);
-    overlapped.hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
+
+    if (event == NULL) {
+        overlapped.hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
+    } else {
+        overlapped.hEvent = event;
+    }
 
     DWORD read_bytes;
 
@@ -76,7 +89,10 @@ func_result read_block_from_file(LPCVOID const block_info) {
 
     WaitForSingleObject(overlapped.hEvent, INFINITE);
     GetOverlappedResult(block->file, &overlapped, &read_bytes, TRUE);
-    CloseHandle(overlapped.hEvent);
+
+    if (event == NULL) {
+        CloseHandle(overlapped.hEvent);
+    }
 
     return (func_result){read_bytes, 0};
 }
@@ -91,7 +107,7 @@ func_result write_metadata_to_file(
     uint64_t all_written_bytes = 0;
 
     file_block_info block_info = {file, offset, (uint8_t*)metadata, metadata_size};
-    func_result result = write_block_to_file(&block_info);
+    func_result result = write_block_to_file(&block_info,NULL);
 
     if (result.error) {
         return result;
@@ -102,7 +118,7 @@ func_result write_metadata_to_file(
     block_info.data = (uint8_t*)cipher_info;
     block_info.data_size = 2;
 
-    result = write_block_to_file(&block_info);
+    result = write_block_to_file(&block_info,NULL);
 
     if (result.error) {
         return result;
@@ -134,7 +150,7 @@ uint8_t read_cipher_from_file(
 
     uint8_t cipher[2];
     file_block_info const block_info = {.file = file, .offset = size.result - 2, .data = cipher, .data_size = 2};
-    func_result const result = read_block_from_file(&block_info);
+    func_result const result = read_block_from_file(&block_info,NULL);
 
     if (result.error) {
         return 1; //Ошибка при работе с файлом

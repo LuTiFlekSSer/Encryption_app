@@ -51,8 +51,8 @@ typedef struct {
 func_result get_disk_free_space(const WCHAR *disk_name);
 func_result get_file_size(HANDLE file);
 
-func_result write_block_to_file(LPCVOID block_info);
-func_result read_block_from_file(LPCVOID block_info);
+func_result write_block_to_file(LPCVOID block_info, HANDLE event);
+func_result read_block_from_file(LPCVOID block_info, HANDLE event);
 
 func_result write_metadata_to_file(
     HANDLE file,

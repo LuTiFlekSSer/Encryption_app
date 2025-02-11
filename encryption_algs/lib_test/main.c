@@ -15,7 +15,7 @@ int main() {
         L"C:\\",
         L"../../../middle.txt",
         key,
-        12,
+        4,
         &curr,
         &total
     );
@@ -28,7 +28,7 @@ int main() {
         L"C:\\",
         L"../../../output.txt",
         key,
-        12,
+        4,
         &curr,
         &total
     );
