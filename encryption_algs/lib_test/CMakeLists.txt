@@ -11,3 +11,4 @@ add_executable(
 )
 
 target_link_libraries(lib_test PRIVATE kyznechik-ecb)
+target_link_libraries(lib_test PRIVATE kyznechik-ctr)
