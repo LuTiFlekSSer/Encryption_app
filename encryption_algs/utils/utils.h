@@ -45,8 +45,10 @@ typedef struct {
     HANDLE input_file, output_file;
     uint8_t *error, **Ks;
     CIPHER_FUNC_TYPE func_type;
+    __uint128_t gamma;
 } thread_data;
 
+uint32_t const BUF_SIZE = 1024 * 256 * 4 * 4;
 
 func_result get_disk_free_space(const WCHAR *disk_name);
 func_result get_file_size(HANDLE file);

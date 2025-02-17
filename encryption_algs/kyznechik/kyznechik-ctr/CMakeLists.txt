@@ -14,3 +14,4 @@ add_library(
 )
 
 target_link_libraries(kyznechik-ctr PRIVATE utils kyznechik-base)
+target_compile_options(kyznechik-ctr PRIVATE -msse4.2 -mavx -mrdrnd)

@@ -1,6 +1,6 @@
 #include <stdio.h>
 
-#include "kyznechik-ecb.h"
+#include "kyznechik-ctr.h"
 #include "stdint.h"
 
 int main() {
@@ -10,12 +10,12 @@ int main() {
     };
     uint64_t curr = 0, total = 0;
 
-    int result = encrypt_kyznechik_ecb(
+    int result = encrypt_kyznechik_ctr(
         L"../../../input.txt",
         L"C:\\",
         L"../../../middle.txt",
         key,
-        4,
+        1,
         &curr,
         &total
     );
@@ -23,18 +23,18 @@ int main() {
     printf("%d\n", result);
     printf("%llu %llu\n", curr, total);
 
-    result = decrypt_kyznechik_ecb(
-        L"../../../middle.txt",
-        L"C:\\",
-        L"../../../output.txt",
-        key,
-        4,
-        &curr,
-        &total
-    );
-
-    printf("%d\n", result);
-    printf("%llu %llu\n", curr, total);
+    // result = decrypt_kyznechik_ctr(
+    //     L"../../../middle.txt",
+    //     L"C:\\",
+    //     L"../../../output.txt",
+    //     key,
+    //     1,
+    //     &curr,
+    //     &total
+    // );
+    //
+    // printf("%d\n", result);
+    // printf("%llu %llu\n", curr, total);
 
     return 0;
 }

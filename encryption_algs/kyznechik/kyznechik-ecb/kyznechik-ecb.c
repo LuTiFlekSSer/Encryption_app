@@ -6,13 +6,10 @@
 #include "kyznechik.h"
 #include "utils.h"
 
-uint32_t BUF_SIZE = 1024 * 256 * 4 * 4;
-
 uint8_t process_block(
     const uint8_t **Ks,
     file_block_info const *input_file_info,
     file_block_info const *output_file_info,
-    uint64_t *current_step,
     void (*cipher_func)(uint8_t const **, uint8_t const *, uint8_t *),
     HANDLE event
 ) {
@@ -71,8 +68,7 @@ DWORD WINAPI kyznechik_ecb_thread(LPVOID raw_data) {
 
         input_file_info.offset = output_file_info.offset = BUF_SIZE * i + data->start * 16;
 
-        if (process_block((const uint8_t**)data->Ks, &input_file_info, &output_file_info, data->current_step,
-                          cipher_func, event) != 0) {
+        if (process_block((const uint8_t**)data->Ks, &input_file_info, &output_file_info, cipher_func, event) != 0) {
             *(data->error) = 1;
             free(buf);
             CloseHandle(event);
@@ -100,8 +96,7 @@ DWORD WINAPI kyznechik_ecb_thread(LPVOID raw_data) {
         input_file_info.offset = output_file_info.offset = total * BUF_SIZE + data->start * 16;
         input_file_info.data_size = output_file_info.data_size = mod;
 
-        if (process_block((const uint8_t**)data->Ks, &input_file_info, &output_file_info, data->current_step,
-                          cipher_func, event) != 0) {
+        if (process_block((const uint8_t**)data->Ks, &input_file_info, &output_file_info, cipher_func, event) != 0) {
             *(data->error) = 1;
             free(buf);
             CloseHandle(event);
