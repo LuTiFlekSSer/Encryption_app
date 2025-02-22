@@ -1,6 +1,7 @@
 #include <stdio.h>
 
 #include "kyznechik-ctr.h"
+#include "kyznechik.h"
 #include "stdint.h"
 
 int main() {
@@ -23,18 +24,18 @@ int main() {
     printf("%d\n", result);
     printf("%llu %llu\n", curr, total);
 
-    // result = decrypt_kyznechik_ctr(
-    //     L"../../../middle.txt",
-    //     L"C:\\",
-    //     L"../../../output.txt",
-    //     key,
-    //     1,
-    //     &curr,
-    //     &total
-    // );
-    //
-    // printf("%d\n", result);
-    // printf("%llu %llu\n", curr, total);
+    result = decrypt_kyznechik_ctr(
+        L"../../../middle.txt",
+        L"C:\\",
+        L"../../../output.txt",
+        key,
+        1,
+        &curr,
+        &total
+    );
+
+    printf("%d\n", result);
+    printf("%llu %llu\n", curr, total);
 
     return 0;
 }

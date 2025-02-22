@@ -275,3 +275,9 @@ void delete_threads_data(thread_data *threads_data, DWORD *threads_id, HANDLE *t
     free(threads);
     free(threads_id);
 }
+
+void initialize_s(uint8_t const s, s_info *res) {
+    res->S = s;
+    res->CIPHER_BLOCK_SIZE = s / 8;
+    res->SHIFT = (16 - res->CIPHER_BLOCK_SIZE) * 8;
+}

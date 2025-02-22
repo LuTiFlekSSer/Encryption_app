@@ -39,6 +39,10 @@ typedef struct {
 } func_result;
 
 typedef struct {
+    uint8_t S, CIPHER_BLOCK_SIZE, SHIFT;
+} s_info;
+
+typedef struct {
     uint64_t start, end;
     uint64_t *current_step;
     CRITICAL_SECTION *lock;
@@ -46,7 +50,9 @@ typedef struct {
     uint8_t *error, **Ks;
     CIPHER_FUNC_TYPE func_type;
     __uint128_t gamma;
+    s_info *s_data;
 } thread_data;
+
 
 uint32_t const BUF_SIZE = 1024 * 256 * 4 * 4;
 
@@ -77,5 +83,7 @@ uint8_t check_files(HANDLE input_file, HANDLE output_file, uint64_t free_disk_sp
 
 uint8_t create_threads_data(uint16_t num_threads, thread_data **threads_data, DWORD **threads_id, HANDLE **threads);
 void delete_threads_data(thread_data *threads_data, DWORD *threads_id, HANDLE *threads);
+
+void initialize_s(uint8_t s, s_info *res);
 
 #endif
