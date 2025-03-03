@@ -127,6 +127,22 @@ uint8_t kyznechik_cbc_work(
     return 0;
 }
 
+uint8_t encrypt_last_bytes(const uint8_t **Ks, uint8_t const *r, uint32_t const m, file_block_info const *block_info) {
+    __uint128_t register_output, file_output;
+    memcpy(&register_output, r + m - 16, 16);
+    memcpy(&file_output, block_info->data, 16);
+
+    register_output ^= file_output;
+    kyznechik_encrypt_data(Ks, (uint8_t*)&register_output, block_info->data);
+
+    func_result const f_result = write_block_to_file(block_info, NULL);
+    if (f_result.error != 0) {
+        return 1;
+    }
+
+    return 0;
+}
+
 uint8_t encrypt_kyznechik_cbc(
     const WCHAR *file_in_path,
     const WCHAR *disk_out_name,
@@ -192,7 +208,6 @@ uint8_t encrypt_kyznechik_cbc(
     memcpy(metadata + 16 + M, &M, 4);
 
     *total_steps = file_size.result / 16;
-    uint8_t const last_bytes = file_size.result % 16;
 
     uint8_t result = check_files(input_file, output_file, disk_space.result, file_size.result, meta_size - mod + 2);
 
@@ -235,12 +250,12 @@ uint8_t encrypt_kyznechik_cbc(
         M
     );
 
-    // error = encrypt_last_bytes((const uint8_t**)Ks,сосал, &(file_block_info){
-    //                                 .file = output_file,
-    //                                 .offset = *total_steps * 16,
-    //                                 .data = metadata,
-    //                                 .data_size = 16
-    //                             });
+    error = encrypt_last_bytes((const uint8_t**)Ks, metadata + 16, M, &(file_block_info){
+                                   .file = output_file,
+                                   .offset = *total_steps * 16,
+                                   .data = metadata,
+                                   .data_size = 16
+                               });
 
     kyznechik_finalize(Ks);
     close_files(input_file, output_file);
