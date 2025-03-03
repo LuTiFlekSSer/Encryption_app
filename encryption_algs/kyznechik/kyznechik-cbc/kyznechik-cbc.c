@@ -8,14 +8,14 @@
 #include "kyznechik.h"
 #include "utils.h"
 
-uint64_t const M = 16; // размер регистра сдвига можно менять кратно 16
+uint32_t const M = 32; // размер регистра сдвига можно менять кратно 16
 
 uint8_t process_block(
     const uint8_t **Ks,
     file_block_info const *input_file_info,
     file_block_info const *output_file_info,
     uint8_t *r,
-    uint64_t const m,
+    uint32_t const m,
     void (*cipher_func)(uint8_t const **, uint8_t const *, uint8_t *),
     HANDLE event
 ) {
@@ -33,7 +33,7 @@ uint8_t process_block(
         cipher_func(Ks, (uint8_t*)&register_output, (uint8_t*)&file_output);
         memcpy(output_file_info->data + j, &file_output, 16);
 
-        for (uint64_t i = m - 1; i >= 16; --i) {
+        for (uint32_t i = m - 1; i >= 16; --i) {
             r[i] = r[i - 16];
         }
         memcpy(r, &file_output, 16);
@@ -55,22 +55,25 @@ uint8_t kyznechik_cbc_work(
     uint8_t **Ks,
     CIPHER_FUNC_TYPE const func_type,
     uint8_t *r,
-    uint64_t const m
+    uint32_t const m
 ) {
-    uint8_t buf[BUF_SIZE];
-
-    HANDLE event = CreateEvent(NULL, TRUE, FALSE, NULL);
-    if (event == NULL) {
-        kyznechik_finalize(Ks);
-        close_files(input_file, output_file);
-        return 1; //Ошибка при шифровании
-    }
+    uint8_t *buf = malloc(BUF_SIZE * sizeof(uint8_t));
 
     void (*cipher_func)(uint8_t const **, uint8_t const *, uint8_t *);
     if (func_type == ENCRYPT) {
         cipher_func = kyznechik_encrypt_data;
     } else {
         cipher_func = kyznechik_decrypt_data;
+    }
+
+    if (buf == NULL) {
+        return 2;
+    }
+
+    HANDLE event = CreateEvent(NULL, TRUE, FALSE, NULL);
+    if (event == NULL) {
+        free(buf);
+        return 1; //Ошибка при шифровании
     }
 
     uint64_t const total = total_steps * 16 / BUF_SIZE,
@@ -81,22 +84,47 @@ uint8_t kyznechik_cbc_work(
 
     for (uint64_t i = 0; i < total; ++i) {
         input_file_info.offset = output_file_info.offset = BUF_SIZE * i;
-        //
-        // if (process_block((const uint8_t**)data->Ks,
-        //                   &input_file_info,
-        //                   &output_file_info,
-        //                   data->gamma + data->start,
-        //                   data->s_data,
-        //                   cipher_func,
-        //                   event) != 0) {
-        //     CloseHandle(event);
-        //     return 1;
-        // }
+
+        if (process_block((const uint8_t**)Ks,
+                          &input_file_info,
+                          &output_file_info,
+                          r,
+                          m,
+                          cipher_func,
+                          event) != 0) {
+            free(buf);
+            CloseHandle(event);
+            return 1;
+        }
 
         if ((i + 1) % 256 == 0) {
             *current_step += BUF_SIZE * 16;
         }
     }
+
+    *current_step += BUF_SIZE / 16 * (total % 256);
+
+    if (mod != 0) {
+        input_file_info.offset = output_file_info.offset = total * BUF_SIZE;
+        input_file_info.data_size = output_file_info.data_size = mod;
+
+        if (process_block((const uint8_t**)Ks,
+                          &input_file_info,
+                          &output_file_info,
+                          r,
+                          m,
+                          cipher_func,
+                          event) != 0) {
+            free(buf);
+            CloseHandle(event);
+            return 1;
+        }
+
+        *current_step += mod / 16;
+    }
+    free(buf);
+    CloseHandle(event);
+    return 0;
 }
 
 uint8_t encrypt_kyznechik_cbc(
@@ -128,10 +156,9 @@ uint8_t encrypt_kyznechik_cbc(
         return 3; // Не удалось получить размер файла
     }
 
-    uint8_t const mod = file_size.result % 16,
-                  meta_size = 24 + M,
-                  after_file[2] = {KYZNECHIK, CBC};
-    uint8_t metadata[meta_size] = {1};
+    uint8_t const mod = file_size.result % 16, after_file[2] = {KYZNECHIK, CBC};
+    uint32_t const meta_size = 20 + M;
+    uint8_t metadata[20 + 32] = {1}; //TODO НЕ ПРОЕ*АТЬ
 
     if (mod != 0) {
         func_result const f_result = read_block_from_file(
@@ -152,7 +179,7 @@ uint8_t encrypt_kyznechik_cbc(
         metadata[mod] = 1;
     }
 
-    uint8_t initial_vector[M];
+    uint8_t initial_vector[32]; //TODO НЕ ПРОЕ*АТЬ
 
     for (int i = 0; i < M; i += 8) {
         if (!_rdrand64_step((uint64_t*)(initial_vector + i))) {
@@ -160,13 +187,14 @@ uint8_t encrypt_kyznechik_cbc(
             *(initial_vector + i) = ((uint64_t)rand()) << 32 | (uint64_t)rand();
         }
     }
+
     memcpy(metadata + 16, initial_vector, M);
-    memcpy(metadata + 16 + M, &M, 8);
+    memcpy(metadata + 16 + M, &M, 4);
 
     *total_steps = file_size.result / 16;
     uint8_t const last_bytes = file_size.result % 16;
 
-    uint8_t result = check_files(input_file, output_file, disk_space.result, file_size.result, 26 - mod + M);
+    uint8_t result = check_files(input_file, output_file, disk_space.result, file_size.result, meta_size - mod + 2);
 
     if (result == 1) {
         return 4; // недостаточно места на диске
@@ -183,7 +211,7 @@ uint8_t encrypt_kyznechik_cbc(
         after_file
     );
 
-    if (f_result.error || f_result.result != meta_size + 2) {
+    if (f_result.error || f_result.result != (uint64_t)meta_size + 2) {
         close_files(input_file, output_file);
         return 6; // Не удалось записать метаданные
     }
@@ -193,6 +221,8 @@ uint8_t encrypt_kyznechik_cbc(
     if (kyznechik_generate_keys(key, &Ks)) {
         return 8; // не удалось создать ключи
     }
+
+    uint8_t error = 0;
 
     result = kyznechik_cbc_work(
         input_file,
@@ -204,6 +234,20 @@ uint8_t encrypt_kyznechik_cbc(
         metadata + 16,
         M
     );
+
+    // error = encrypt_last_bytes((const uint8_t**)Ks,сосал, &(file_block_info){
+    //                                 .file = output_file,
+    //                                 .offset = *total_steps * 16,
+    //                                 .data = metadata,
+    //                                 .data_size = 16
+    //                             });
+
+    kyznechik_finalize(Ks);
+    close_files(input_file, output_file);
+
+    if (error != 0 or result != 0) {
+        return 9; //ошибка при шифровании
+    }
 
     return 0;
 }

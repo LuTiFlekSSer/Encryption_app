@@ -219,7 +219,7 @@ uint8_t encrypt_kyznechik_ctr(
         output_file,
         file_size.result,
         metadata,
-        mod,
+        (uint32_t)mod,
         after_file
     );
 

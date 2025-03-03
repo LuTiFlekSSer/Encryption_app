@@ -101,7 +101,7 @@ func_result write_metadata_to_file(
     HANDLE file,
     uint64_t const offset,
     uint8_t const *metadata,
-    uint8_t const metadata_size,
+    uint32_t const metadata_size,
     uint8_t const *cipher_info
 ) {
     uint64_t all_written_bytes = 0;
