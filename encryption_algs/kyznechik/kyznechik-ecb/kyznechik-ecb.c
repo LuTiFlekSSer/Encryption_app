@@ -18,7 +18,7 @@ uint8_t process_block(
         return 1;
     }
 
-    for (int j = 0; j < input_file_info->data_size; j += 16) {
+    for (uint32_t j = 0; j < input_file_info->data_size; j += 16) {
         cipher_func(Ks, input_file_info->data + j, output_file_info->data + j);
     }
 
@@ -186,9 +186,11 @@ uint8_t encrypt_kyznechik_ecb(
     uint8_t result = check_files(input_file, output_file, disk_space.result, file_size.result, 16 - mod + 2);
 
     if (result == 1) {
+        close_files(input_file, output_file);
         return 4; // недостаточно места на диске
     }
     if (result == 2) {
+        close_files(input_file, output_file);
         return 5; // ошибка при увеличении выходного файла
     }
 
@@ -210,12 +212,15 @@ uint8_t encrypt_kyznechik_ecb(
     HANDLE *threads;
 
     if (create_threads_data(num_threads, &threads_data, &threads_id, &threads) != 0) {
+        close_files(input_file, output_file);
         return 7; // не удалось создать потоки
     }
 
     uint8_t **Ks;
     kyznechik_init();
     if (kyznechik_generate_keys(key, &Ks)) {
+        close_files(input_file, output_file);
+        delete_threads_data(threads_data, threads_id, threads);
         return 8; // не удалось создать ключи
     }
 
@@ -343,9 +348,11 @@ uint8_t decrypt_kyznechik_ecb(
     uint8_t result = check_files(input_file, output_file, disk_space.result, file_size.result - 2, 0);
 
     if (result == 1) {
+        close_files(input_file, output_file);
         return 4; // недостаточно места на диске
     }
     if (result == 2) {
+        close_files(input_file, output_file);
         return 5; // ошибка при увеличении выходного файла
     }
 
@@ -354,12 +361,15 @@ uint8_t decrypt_kyznechik_ecb(
     HANDLE *threads;
 
     if (create_threads_data(num_threads, &threads_data, &threads_id, &threads) != 0) {
+        close_files(input_file, output_file);
         return 7; // не удалось создать потоки
     }
 
     uint8_t **Ks;
     kyznechik_init();
     if (kyznechik_generate_keys(key, &Ks)) {
+        close_files(input_file, output_file);
+        delete_threads_data(threads_data, threads_id, threads);
         return 8; // не удалось создать ключи
     }
 

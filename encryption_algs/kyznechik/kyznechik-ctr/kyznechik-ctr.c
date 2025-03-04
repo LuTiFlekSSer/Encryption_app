@@ -25,7 +25,7 @@ uint8_t process_block(
     }
 
     __uint128_t cipher_output = 0, file_output = 0;
-    for (int j = 0; j < input_file_info->data_size; j += s_data->CIPHER_BLOCK_SIZE) {
+    for (uint32_t j = 0; j < input_file_info->data_size; j += s_data->CIPHER_BLOCK_SIZE) {
         cipher_func(Ks, (uint8_t*)&gamma, (uint8_t*)&cipher_output);
         cipher_output >>= s_data->SHIFT;
 
@@ -209,9 +209,11 @@ uint8_t encrypt_kyznechik_ctr(
     uint8_t result = check_files(input_file, output_file, disk_space.result, file_size.result, mod + 2);
 
     if (result == 1) {
+        close_files(input_file, output_file);
         return 4; // недостаточно места на диске
     }
     if (result == 2) {
+        close_files(input_file, output_file);
         return 5; // ошибка при увеличении выходного файла
     }
 
@@ -250,12 +252,15 @@ uint8_t encrypt_kyznechik_ctr(
     HANDLE *threads;
 
     if (create_threads_data(num_threads, &threads_data, &threads_id, &threads) != 0) {
+        close_files(input_file, output_file);
         return 7; // не удалось создать потоки
     }
 
     uint8_t **Ks;
     kyznechik_init();
     if (kyznechik_generate_keys(key, &Ks)) {
+        close_files(input_file, output_file);
+        delete_threads_data(threads_data, threads_id, threads);
         return 8; // не удалось создать ключи
     }
 
@@ -359,14 +364,16 @@ uint8_t decrypt_kyznechik_ctr(
 
     uint8_t result = check_files(input_file, output_file, disk_space.result, file_size.result - 11, 0);
     if (result == 1) {
+        close_files(input_file, output_file);
         return 4; // недостаточно места на диске
     }
     if (result == 2) {
+        close_files(input_file, output_file);
         return 5; // ошибка при увеличении выходного файла
     }
 
     uint8_t metadata[16];
-    read_block_from_file(
+    func_result f_result = read_block_from_file(
         &(file_block_info){
             .file = input_file,
             .offset = file_size.result - 11,
@@ -375,6 +382,11 @@ uint8_t decrypt_kyznechik_ctr(
         },
         NULL
     );
+
+    if (f_result.error != 0) {
+        close_files(input_file, output_file);
+        return 6; // Не удалось считать метаданные
+    }
 
     s_info s_data;
     initialize_s(metadata[8], &s_data);
@@ -386,7 +398,7 @@ uint8_t decrypt_kyznechik_ctr(
     *total_steps = (file_size.result - 11) / s_data.CIPHER_BLOCK_SIZE;
     uint8_t const last_bytes = (file_size.result - 11) % s_data.CIPHER_BLOCK_SIZE;
 
-    func_result const f_result = read_block_from_file(
+    f_result = read_block_from_file(
         &(file_block_info){
             .file = input_file,
             .offset = *total_steps * s_data.CIPHER_BLOCK_SIZE,
@@ -401,18 +413,20 @@ uint8_t decrypt_kyznechik_ctr(
         return 6; // Не удалось считать метаданные
     }
 
-
     thread_data *threads_data;
     DWORD *threads_id;
     HANDLE *threads;
 
     if (create_threads_data(num_threads, &threads_data, &threads_id, &threads) != 0) {
+        close_files(input_file, output_file);
         return 7; // не удалось создать потоки
     }
 
     uint8_t **Ks;
     kyznechik_init();
     if (kyznechik_generate_keys(key, &Ks)) {
+        close_files(input_file, output_file);
+        delete_threads_data(threads_data, threads_id, threads);
         return 8; // не удалось создать ключи
     }
 
