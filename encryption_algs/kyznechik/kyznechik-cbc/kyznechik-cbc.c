@@ -255,13 +255,11 @@ uint8_t encrypt_kyznechik_cbc(
     uint8_t result = check_files(input_file, output_file, disk_space.result, file_size.result, meta_size - mod + 2);
 
     if (result == 1) {
-        close_files(input_file, output_file);
         free(metadata);
         free(initial_vector);
         return 4; // недостаточно места на диске
     }
     if (result == 2) {
-        close_files(input_file, output_file);
         free(metadata);
         free(initial_vector);
         return 5; // ошибка при увеличении выходного файла
@@ -413,12 +411,10 @@ uint8_t decrypt_kyznechik_cbc(
 
     uint8_t result = check_files(input_file, output_file, disk_space.result, file_size.result - 6 - m, 0);
     if (result == 1) {
-        close_files(input_file, output_file);
         free(initial_vector);
         return 4; // недостаточно места на диске
     }
     if (result == 2) {
-        close_files(input_file, output_file);
         free(initial_vector);
         return 5; // ошибка при увеличении выходного файла
     }
