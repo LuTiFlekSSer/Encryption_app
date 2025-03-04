@@ -1,6 +1,6 @@
 #include <stdio.h>
 
-#include "kyznechik-ctr.h"
+#include "kyznechik-cbc.h"
 #include "kyznechik.h"
 #include "stdint.h"
 
@@ -11,7 +11,7 @@ int main() {
     };
     uint64_t curr = 0, total = 0;
 
-    int result = encrypt_kyznechik_ctr(
+    int result = encrypt_kyznechik_cbc(
         L"../../../input.txt",
         L"C:\\",
         L"../../../middle.txt",
@@ -24,7 +24,7 @@ int main() {
     printf("%d\n", result);
     printf("%llu %llu\n", curr, total);
 
-    result = decrypt_kyznechik_ctr(
+    result = decrypt_kyznechik_cbc(
         L"../../../middle.txt",
         L"C:\\",
         L"../../../output.txt",

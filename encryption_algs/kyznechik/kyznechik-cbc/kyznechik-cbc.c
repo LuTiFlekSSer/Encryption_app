@@ -8,7 +8,7 @@
 #include "kyznechik.h"
 #include "utils.h"
 
-uint32_t const M = 32; // размер регистра сдвига можно менять кратно 16
+uint32_t const M = 16; // размер регистра сдвига можно менять кратно 16
 
 uint8_t encrypt_block(
     uint8_t const **Ks,
