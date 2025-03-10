@@ -1,7 +1,6 @@
 #include <stdio.h>
 
-#include "kyznechik-cbc.h"
-#include "kyznechik.h"
+#include "magma.h"
 #include "stdint.h"
 
 int main() {
@@ -10,31 +9,33 @@ int main() {
         25, 232, 158, 188, 64, 154, 12, 120, 208
     };
     uint64_t curr = 0, total = 0;
+    uint8_t vec[4] = {0x31, 0x75, 0xb9, 0xfd};
+    S_map(vec);
 
-    int result = encrypt_kyznechik_cbc(
-        L"../../../input.txt",
-        L"C:\\",
-        L"../../../middle.txt",
-        key,
-        1,
-        &curr,
-        &total
-    );
+    // int result = encrypt_kyznechik_cbc(
+    //     L"../../../input.txt",
+    //     L"C:\\",
+    //     L"../../../middle.txt",
+    //     key,
+    //     1,
+    //     &curr,
+    //     &total
+    // );
+    //
+    // printf("%d\n", result);
+    // printf("%llu %llu\n", curr, total);
+    //
+    // result = decrypt_kyznechik_cbc(
+    //     L"../../../middle.txt",
+    //     L"C:\\",
+    //     L"../../../output.txt",
+    //     key,
+    //     1,
+    //     &curr,
+    //     &total
+    // );
 
-    printf("%d\n", result);
-    printf("%llu %llu\n", curr, total);
-
-    result = decrypt_kyznechik_cbc(
-        L"../../../middle.txt",
-        L"C:\\",
-        L"../../../output.txt",
-        key,
-        1,
-        &curr,
-        &total
-    );
-
-    printf("%d\n", result);
+    // printf("%d\n", result);
     printf("%llu %llu\n", curr, total);
 
     return 0;

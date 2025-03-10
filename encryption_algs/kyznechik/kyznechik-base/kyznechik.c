@@ -1,7 +1,6 @@
 #include "kyznechik.h"
 
 #include <stdint.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -87,11 +86,6 @@ void sqr_mat(uint8_t mat[16][16]) {
 }
 
 void generate_lut_table() {
-    for (int i = 1; i < 256; ++i) {
-        if ((mult((uint8_t)148, (uint8_t)i) ^ 1) == 1) {
-            printf("%d\n", i);
-        }
-    }
     for (int i = 0; i < 16; ++i) {
         for (int j = 0; j < 256; ++j) {
             LUT_TABLE[i][j] =
@@ -134,9 +128,10 @@ void generate_lut_table() {
 }
 
 void kyznechik_init() {
-    if (INITED++) {
+    if (INITED) {
         return;
     }
+    INITED = 1;
 
     for (int i = 0; i < 256; ++i) {
         for (int j = 0; j < 256; ++j) {
