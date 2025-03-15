@@ -14,8 +14,9 @@ const uint8_t PI_TABLE[8][16] = {
     8, 14, 2, 5, 6, 9, 1, 12, 15, 4, 11, 0, 13, 10, 3, 7,
     1, 7, 14, 13, 0, 5, 8, 3, 4, 15, 10, 6, 9, 12, 11, 2
 };
-uint8_t Z_TABLE[4][256];
-uint8_t INITED = 0;
+uint8_t S_TABLE[4][256], Z_TABLE[4][4] = {0};
+uint32_t LUT_TABLE[4][256];
+uint8_t SHIFT = 11, INITED = 0;
 
 void magma_init() {
     if (INITED) {
@@ -25,19 +26,33 @@ void magma_init() {
 
     for (int i = 0; i < 4; ++i) {
         for (int j = 0; j < 256; ++j) {
-            Z_TABLE[i][j] = PI_TABLE[2 * i + 1][j / 16] * 16 + PI_TABLE[2 * i][j % 16];
+            S_TABLE[i][j] = PI_TABLE[2 * i + 1][j / 16] * 16 + PI_TABLE[2 * i][j % 16];
+        }
+    }
+    for (int i = 0; i < 4; ++i) {
+        Z_TABLE[i][i] = 1;
+        *((uint32_t*)Z_TABLE[i]) = (*((uint32_t*)Z_TABLE[i]) << SHIFT) | (*((uint32_t*)Z_TABLE[i]) >> (32 - SHIFT));
+    }
+
+    for (int i = 0; i < 4; ++i) {
+        for (int j = 0; j < 256; ++j) {
+            LUT_TABLE[i][j] =
+                (uint32_t)(S_TABLE[i][j] * Z_TABLE[i][3]) << 24 |
+                (uint32_t)(S_TABLE[i][j] * Z_TABLE[i][2]) << 16 |
+                (uint32_t)(S_TABLE[i][j] * Z_TABLE[i][1]) << 8 |
+                (uint32_t)(S_TABLE[i][j] * Z_TABLE[i][0]);
         }
     }
 }
 
-void S_map(uint8_t *vec) {
-    for (int i = 0; i < 4; ++i) {
-        vec[i] = Z_TABLE[i][vec[i]];
-    }
-}
+void LS_map(uint8_t *vec) {
+    uint32_t ans = 0;
 
-void Shift(uint32_t *vec) {
-    *vec = ((*vec) << 11) | ((*vec) >> (32 - 11));
+    for (int i = 0; i < 4; ++i) {
+        ans ^= LUT_TABLE[i][vec[i]];
+    }
+
+    memcpy(vec, &ans, 4 * sizeof(uint8_t));
 }
 
 int magma_generate_keys(uint8_t const *key, uint8_t ***Ks) {
@@ -77,8 +92,7 @@ void magma_encrypt_data(uint8_t const **Ks, uint8_t const *data_in, uint8_t *dat
         uint32_t const buf = lower;
         lower += *((uint32_t*)Ks[i]);
 
-        S_map((uint8_t*)&lower);
-        Shift(&lower);
+        LS_map((uint8_t*)&lower);
 
         lower ^= higher;
         higher = buf;
@@ -94,8 +108,7 @@ void magma_decrypt_data(uint8_t const **Ks, uint8_t const *data_in, uint8_t *dat
         uint32_t const buf = lower;
         lower += *((uint32_t*)Ks[31 - i]);
 
-        S_map((uint8_t*)&lower);
-        Shift(&lower);
+        LS_map((uint8_t*)&lower);
 
         lower ^= higher;
         higher = buf;
