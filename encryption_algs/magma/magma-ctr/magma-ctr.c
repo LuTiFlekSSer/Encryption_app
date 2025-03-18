@@ -1,20 +1,20 @@
-#include "kyznechik-ctr.h"
+#include "magma-ctr.h"
 
 #include <stdio.h>
 #include <iso646.h>
 #include <time.h>
 #include <intrin.h>
 
-#include "kyznechik.h"
+#include "magma.h"
 #include "utils.h"
 
-uint8_t const S = 128; // можно менять от 8 до 128 кратно 8
+uint8_t const S = 64; // можно менять от 8 до 64 кратно 8
 
 uint8_t process_block(
     const uint8_t **Ks,
     file_block_info const *input_file_info,
     file_block_info const *output_file_info,
-    __uint128_t gamma,
+    uint64_t gamma,
     s_info const *s_data,
     HANDLE event
 ) {
@@ -23,9 +23,9 @@ uint8_t process_block(
         return 1;
     }
 
-    __uint128_t cipher_output = 0, file_output = 0;
+    uint64_t cipher_output = 0, file_output = 0;
     for (uint32_t j = 0; j < input_file_info->data_size; j += s_data->CIPHER_BLOCK_SIZE) {
-        kyznechik_encrypt_data(Ks, (uint8_t*)&gamma, (uint8_t*)&cipher_output);
+        magma_encrypt_data(Ks, (uint8_t*)&gamma, (uint8_t*)&cipher_output);
         cipher_output >>= s_data->SHIFT;
 
         memcpy(&file_output, input_file_info->data + j, s_data->CIPHER_BLOCK_SIZE);
@@ -43,7 +43,7 @@ uint8_t process_block(
     return 0;
 }
 
-DWORD WINAPI kyznechik_ctr_thread(LPVOID raw_data) {
+DWORD WINAPI magma_ctr_thread(LPVOID raw_data) {
     thread_data const *data = raw_data;
     uint8_t *buf = malloc(BUF_SIZE * sizeof(uint8_t));
 
@@ -86,15 +86,15 @@ DWORD WINAPI kyznechik_ctr_thread(LPVOID raw_data) {
             return 1;
         }
 
-        if ((i + 1) % 256 == 0) {
+        if ((i + 1) % 512 == 0) {
             EnterCriticalSection(data->lock);
-            (*data->current_step) += BUF_SIZE * data->s_data->CIPHER_BLOCK_SIZE;
+            (*data->current_step) += BUF_SIZE / data->s_data->CIPHER_BLOCK_SIZE * 512;
             LeaveCriticalSection(data->lock);
         }
     }
 
     EnterCriticalSection(data->lock);
-    (*data->current_step) += BUF_SIZE / data->s_data->CIPHER_BLOCK_SIZE * (total % 256);
+    (*data->current_step) += BUF_SIZE / data->s_data->CIPHER_BLOCK_SIZE * (total % 512);
     LeaveCriticalSection(data->lock);
 
     if (mod != 0) {
@@ -130,10 +130,10 @@ DWORD WINAPI kyznechik_ctr_thread(LPVOID raw_data) {
     return 0;
 }
 
-uint8_t encrypt_last_bytes(const uint8_t **Ks, __uint128_t gamma, file_block_info const *block_info) {
-    __uint128_t cipher_output = 0, file_output = 0;
-    kyznechik_encrypt_data(Ks, (uint8_t*)&gamma, (uint8_t*)&cipher_output);
-    cipher_output >>= (16 - block_info->data_size) * 8;
+uint8_t encrypt_last_bytes(const uint8_t **Ks, uint64_t gamma, file_block_info const *block_info) {
+    uint64_t cipher_output = 0, file_output = 0;
+    magma_encrypt_data(Ks, (uint8_t*)&gamma, (uint8_t*)&cipher_output);
+    cipher_output >>= (8 - block_info->data_size) * 8;
 
     memcpy(&file_output, block_info->data, block_info->data_size);
     file_output ^= cipher_output;
@@ -147,7 +147,7 @@ uint8_t encrypt_last_bytes(const uint8_t **Ks, __uint128_t gamma, file_block_inf
     return 0;
 }
 
-uint8_t encrypt_kyznechik_ctr(
+uint8_t encrypt_magma_ctr(
     const WCHAR *file_in_path,
     const WCHAR *disk_out_name,
     const WCHAR *file_out_path,
@@ -176,22 +176,22 @@ uint8_t encrypt_kyznechik_ctr(
         return 3; // Не удалось получить размер файла
     }
 
-    uint8_t const mod = 9,
-                  after_file[2] = {KYZNECHIK, CTR};
-    uint8_t metadata[16];
+    uint8_t const mod = 5,
+                  after_file[2] = {MAGMA, CTR};
+    uint8_t metadata[8];
 
-    uint64_t initial_vector;
-    if (!_rdrand64_step(&initial_vector)) {
+    uint32_t initial_vector;
+    if (!_rdrand32_step(&initial_vector)) {
         srand(time(NULL));
-        initial_vector = ((uint64_t)rand()) << 32 | (uint64_t)rand();
+        initial_vector = (uint32_t)rand();
     }
 
-    __uint128_t const ctr = (__uint128_t)initial_vector << 64;
+    uint64_t ctr = (uint64_t)initial_vector << 32;
 
     memcpy(metadata, &initial_vector, mod - 1);
     metadata[mod - 1] = S;
     s_info s_data;
-    initialize_s(S, KYZNECHIK, &s_data);
+    initialize_s(S, MAGMA, &s_data);
 
     *total_steps = file_size.result / s_data.CIPHER_BLOCK_SIZE;
     uint8_t const last_bytes = file_size.result % s_data.CIPHER_BLOCK_SIZE;
@@ -245,8 +245,8 @@ uint8_t encrypt_kyznechik_ctr(
     }
 
     uint8_t **Ks;
-    kyznechik_init();
-    if (kyznechik_generate_keys(key, &Ks)) {
+    magma_init();
+    if (magma_generate_keys(key, &Ks)) {
         close_files(input_file, output_file);
         delete_threads_data(threads_data, threads_id, threads);
         return 8; // не удалось создать ключи
@@ -288,7 +288,7 @@ uint8_t encrypt_kyznechik_ctr(
         threads[i] = CreateThread(
             NULL,
             0,
-            kyznechik_ctr_thread,
+            magma_ctr_thread,
             &threads_data[i],
             0,
             &threads_id[i]
@@ -297,7 +297,7 @@ uint8_t encrypt_kyznechik_ctr(
 
     WaitForMultipleObjects(num_threads, threads, TRUE, INFINITE);
 
-    result = encrypt_last_bytes((const uint8_t**)Ks, ctr + (__uint128_t)(*total_steps), &(file_block_info){
+    result = encrypt_last_bytes((const uint8_t**)Ks, ctr + *total_steps, &(file_block_info){
                                     .file = output_file,
                                     .offset = *total_steps * s_data.CIPHER_BLOCK_SIZE,
                                     .data = metadata,
@@ -307,7 +307,7 @@ uint8_t encrypt_kyznechik_ctr(
     for (uint16_t i = 0; i < num_threads; ++i) {
         CloseHandle(threads[i]);
     }
-    kyznechik_finalize(Ks);
+    magma_finalize(Ks);
     delete_threads_data(threads_data, threads_id, threads);
     DeleteCriticalSection(&lock);
     close_files(input_file, output_file);
@@ -319,7 +319,7 @@ uint8_t encrypt_kyznechik_ctr(
     return 0;
 }
 
-uint8_t decrypt_kyznechik_ctr(
+uint8_t decrypt_magma_ctr(
     const WCHAR *file_in_path,
     const WCHAR *disk_out_name,
     const WCHAR *file_out_path,
@@ -348,7 +348,7 @@ uint8_t decrypt_kyznechik_ctr(
         return 3; // Не удалось получить размер файла
     }
 
-    uint8_t result = check_files(input_file, output_file, disk_space.result, file_size.result - 11, 0);
+    uint8_t result = check_files(input_file, output_file, disk_space.result, file_size.result - 7, 0);
     if (result == 1) {
         return 4; // недостаточно места на диске
     }
@@ -356,13 +356,13 @@ uint8_t decrypt_kyznechik_ctr(
         return 5; // ошибка при увеличении выходного файла
     }
 
-    uint8_t metadata[16];
+    uint8_t metadata[8];
     func_result f_result = read_block_from_file(
         &(file_block_info){
             .file = input_file,
-            .offset = file_size.result - 11,
+            .offset = file_size.result - 7,
             .data = metadata,
-            .data_size = 9
+            .data_size = 5
         },
         NULL
     );
@@ -373,14 +373,14 @@ uint8_t decrypt_kyznechik_ctr(
     }
 
     s_info s_data;
-    initialize_s(metadata[8], KYZNECHIK, &s_data);
+    initialize_s(metadata[4], MAGMA, &s_data);
 
-    uint64_t initial_vector;
-    memcpy(&initial_vector, metadata, 8);
-    __uint128_t const ctr = (__uint128_t)initial_vector << 64;
+    uint32_t initial_vector;
+    memcpy(&initial_vector, metadata, 4);
+    uint64_t const ctr = (uint64_t)initial_vector << 32;
 
-    *total_steps = (file_size.result - 11) / s_data.CIPHER_BLOCK_SIZE;
-    uint8_t const last_bytes = (file_size.result - 11) % s_data.CIPHER_BLOCK_SIZE;
+    *total_steps = (file_size.result - 7) / s_data.CIPHER_BLOCK_SIZE;
+    uint8_t const last_bytes = (file_size.result - 7) % s_data.CIPHER_BLOCK_SIZE;
 
     f_result = read_block_from_file(
         &(file_block_info){
@@ -407,8 +407,8 @@ uint8_t decrypt_kyznechik_ctr(
     }
 
     uint8_t **Ks;
-    kyznechik_init();
-    if (kyznechik_generate_keys(key, &Ks)) {
+    magma_init();
+    if (magma_generate_keys(key, &Ks)) {
         close_files(input_file, output_file);
         delete_threads_data(threads_data, threads_id, threads);
         return 8; // не удалось создать ключи
@@ -450,7 +450,7 @@ uint8_t decrypt_kyznechik_ctr(
         threads[i] = CreateThread(
             NULL,
             0,
-            kyznechik_ctr_thread,
+            magma_ctr_thread,
             &threads_data[i],
             0,
             &threads_id[i]
@@ -459,7 +459,7 @@ uint8_t decrypt_kyznechik_ctr(
     WaitForMultipleObjects(num_threads, threads, TRUE, INFINITE);
 
 
-    result = encrypt_last_bytes((const uint8_t**)Ks, ctr + (__uint128_t)(*total_steps), &(file_block_info){
+    result = encrypt_last_bytes((const uint8_t**)Ks, ctr + *total_steps, &(file_block_info){
                                     .file = output_file,
                                     .offset = *total_steps * s_data.CIPHER_BLOCK_SIZE,
                                     .data = metadata,
@@ -470,7 +470,7 @@ uint8_t decrypt_kyznechik_ctr(
     for (uint16_t i = 0; i < num_threads; ++i) {
         CloseHandle(threads[i]);
     }
-    kyznechik_finalize(Ks);
+    magma_finalize(Ks);
     delete_threads_data(threads_data, threads_id, threads);
     DeleteCriticalSection(&lock);
     close_files(input_file, output_file);

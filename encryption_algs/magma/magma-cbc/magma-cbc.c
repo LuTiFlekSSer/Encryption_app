@@ -1,14 +1,14 @@
-#include "kyznechik-cbc.h"
+#include "magma-cbc.h"
 
 #include <stdio.h>
 #include <iso646.h>
 #include <time.h>
 #include <intrin.h>
 
-#include "kyznechik.h"
+#include "magma.h"
 #include "utils.h"
 
-uint32_t const M = 16; // размер регистра сдвига можно менять кратно 16
+uint32_t const M = 8; // размер регистра сдвига можно менять кратно 8
 
 uint8_t encrypt_block(
     uint8_t const **Ks,
@@ -24,18 +24,18 @@ uint8_t encrypt_block(
     }
 
     __uint128_t register_output, file_output;
-    for (uint32_t j = 0; j < input_file_info->data_size; j += 16) {
-        memcpy(&register_output, r + m - 16, 16);
-        memcpy(&file_output, input_file_info->data + j, 16);
+    for (uint32_t j = 0; j < input_file_info->data_size; j += 8) {
+        memcpy(&register_output, r + m - 8, 8);
+        memcpy(&file_output, input_file_info->data + j, 8);
 
         register_output ^= file_output;
-        kyznechik_encrypt_data(Ks, (uint8_t*)&register_output, (uint8_t*)&file_output);
-        memcpy(output_file_info->data + j, &file_output, 16);
+        magma_encrypt_data(Ks, (uint8_t*)&register_output, (uint8_t*)&file_output);
+        memcpy(output_file_info->data + j, &file_output, 8);
 
-        for (uint32_t i = m - 1; i >= 16; --i) {
-            r[i] = r[i - 16];
+        for (uint32_t i = m - 1; i >= 8; --i) {
+            r[i] = r[i - 8];
         }
-        memcpy(r, &file_output, 16);
+        memcpy(r, &file_output, 8);
     }
 
     result = write_block_to_file(output_file_info, event);
@@ -59,19 +59,19 @@ uint8_t decrypt_block(
         return 1;
     }
 
-    __uint128_t register_output, file_output, tmp;
-    for (uint32_t j = 0; j < input_file_info->data_size; j += 16) {
-        memcpy(&tmp, input_file_info->data + j, 16);
-        memcpy(&register_output, r + m - 16, 16);
-        kyznechik_decrypt_data(Ks, input_file_info->data + j, (uint8_t*)&file_output);
+    uint64_t register_output, file_output, tmp;
+    for (uint32_t j = 0; j < input_file_info->data_size; j += 8) {
+        memcpy(&tmp, input_file_info->data + j, 8);
+        memcpy(&register_output, r + m - 8, 8);
+        magma_decrypt_data(Ks, input_file_info->data + j, (uint8_t*)&file_output);
 
         file_output ^= register_output;
-        memcpy(output_file_info->data + j, &file_output, 16);
+        memcpy(output_file_info->data + j, &file_output, 8);
 
-        for (uint32_t i = m - 1; i >= 16; --i) {
-            r[i] = r[i - 16];
+        for (uint32_t i = m - 1; i >= 8; --i) {
+            r[i] = r[i - 8];
         }
-        memcpy(r, &tmp, 16);
+        memcpy(r, &tmp, 8);
     }
 
     result = write_block_to_file(output_file_info, event);
@@ -82,7 +82,7 @@ uint8_t decrypt_block(
     return 0;
 }
 
-uint8_t kyznechik_cbc_work(
+uint8_t magma_cbc_work(
     HANDLE input_file,
     HANDLE output_file,
     uint64_t const total_steps,
@@ -116,8 +116,8 @@ uint8_t kyznechik_cbc_work(
         return 1; //Ошибка при шифровании
     }
 
-    uint64_t const total = total_steps * 16 / BUF_SIZE,
-                   mod = total_steps * 16 % BUF_SIZE;
+    uint64_t const total = total_steps * 8 / BUF_SIZE,
+                   mod = total_steps * 8 % BUF_SIZE;
 
     file_block_info input_file_info = (file_block_info){.file = input_file, .data_size = BUF_SIZE, .data = buf},
                     output_file_info = (file_block_info){.file = output_file, .data_size = BUF_SIZE, .data = buf};
@@ -136,12 +136,12 @@ uint8_t kyznechik_cbc_work(
             return 1;
         }
 
-        if ((i + 1) % 256 == 0) {
-            *current_step += BUF_SIZE * 16;
+        if ((i + 1) % 512 == 0) {
+            *current_step += BUF_SIZE * 64;
         }
     }
 
-    *current_step += BUF_SIZE / 16 * (total % 256);
+    *current_step += BUF_SIZE / 8 * (total % 512);
 
     if (mod != 0) {
         input_file_info.offset = output_file_info.offset = total * BUF_SIZE;
@@ -158,7 +158,7 @@ uint8_t kyznechik_cbc_work(
             return 1;
         }
 
-        *current_step += mod / 16;
+        *current_step += mod / 8;
     }
     free(buf);
     CloseHandle(event);
@@ -166,12 +166,12 @@ uint8_t kyznechik_cbc_work(
 }
 
 uint8_t encrypt_last_bytes(const uint8_t **Ks, uint8_t const *r, uint32_t const m, file_block_info const *block_info) {
-    __uint128_t register_output, file_output;
-    memcpy(&register_output, r + m - 16, 16);
-    memcpy(&file_output, block_info->data, 16);
+    uint64_t register_output, file_output;
+    memcpy(&register_output, r + m - 8, 8);
+    memcpy(&file_output, block_info->data, 8);
 
     register_output ^= file_output;
-    kyznechik_encrypt_data(Ks, (uint8_t*)&register_output, block_info->data);
+    magma_encrypt_data(Ks, (uint8_t*)&register_output, block_info->data);
 
     func_result const f_result = write_block_to_file(block_info, NULL);
     if (f_result.error != 0) {
@@ -181,7 +181,7 @@ uint8_t encrypt_last_bytes(const uint8_t **Ks, uint8_t const *r, uint32_t const 
     return 0;
 }
 
-uint8_t encrypt_kyznechik_cbc(
+uint8_t encrypt_magma_cbc(
     const WCHAR *file_in_path,
     const WCHAR *disk_out_name,
     const WCHAR *file_out_path,
@@ -210,8 +210,8 @@ uint8_t encrypt_kyznechik_cbc(
         return 3; // Не удалось получить размер файла
     }
 
-    uint8_t const mod = file_size.result % 16, after_file[2] = {KYZNECHIK, CBC};
-    uint32_t const meta_size = 20 + M;
+    uint8_t const mod = file_size.result % 8, after_file[2] = {MAGMA, CBC};
+    uint32_t const meta_size = 12 + M;
     uint8_t *metadata = calloc(meta_size, sizeof(uint8_t));
     metadata[0] = 1;
 
@@ -244,10 +244,10 @@ uint8_t encrypt_kyznechik_cbc(
         }
     }
 
-    memcpy(metadata + 16, initial_vector, M);
-    memcpy(metadata + 16 + M, &M, 4);
+    memcpy(metadata + 8, initial_vector, M);
+    memcpy(metadata + 8 + M, &M, 4);
 
-    *total_steps = file_size.result / 16;
+    *total_steps = file_size.result / 8;
 
     uint8_t result = check_files(input_file, output_file, disk_space.result, file_size.result, meta_size - mod + 2);
 
@@ -278,8 +278,8 @@ uint8_t encrypt_kyznechik_cbc(
     }
 
     uint8_t **Ks;
-    kyznechik_init();
-    if (kyznechik_generate_keys(key, &Ks)) {
+    magma_init();
+    if (magma_generate_keys(key, &Ks)) {
         close_files(input_file, output_file);
         free(metadata);
         free(initial_vector);
@@ -288,25 +288,25 @@ uint8_t encrypt_kyznechik_cbc(
 
     uint8_t error = 0;
 
-    result = kyznechik_cbc_work(
+    result = magma_cbc_work(
         input_file,
         output_file,
         *total_steps,
         current_step,
         Ks,
         ENCRYPT,
-        metadata + 16,
+        metadata + 8,
         M
     );
 
-    error = encrypt_last_bytes((const uint8_t**)Ks, metadata + 16, M, &(file_block_info){
+    error = encrypt_last_bytes((const uint8_t**)Ks, metadata + 8, M, &(file_block_info){
                                    .file = output_file,
-                                   .offset = *total_steps * 16,
+                                   .offset = *total_steps * 8,
                                    .data = metadata,
-                                   .data_size = 16
+                                   .data_size = 8
                                });
 
-    kyznechik_finalize(Ks);
+    magma_finalize(Ks);
     close_files(input_file, output_file);
     free(metadata);
     free(initial_vector);
@@ -325,12 +325,12 @@ uint8_t remove_last_bytes(file_block_info const *block_info) {
     }
 
     uint8_t strip_size = 0;
-    while (block_info->data[15 - strip_size] != 1) {
+    while (block_info->data[7 - strip_size] != 1) {
         ++strip_size;
     }
 
     LARGE_INTEGER out_file_size;
-    out_file_size.QuadPart = (int64_t)block_info->offset - strip_size + 15;
+    out_file_size.QuadPart = (int64_t)block_info->offset - strip_size + 7;
 
     if (SetFilePointerEx(block_info->file, out_file_size, NULL, FILE_BEGIN) == 0) {
         return 2; // ошибка при изменении размера файла
@@ -343,7 +343,7 @@ uint8_t remove_last_bytes(file_block_info const *block_info) {
     return 0;
 }
 
-uint8_t decrypt_kyznechik_cbc(
+uint8_t decrypt_magma_cbc(
     const WCHAR *file_in_path,
     const WCHAR *disk_out_name,
     const WCHAR *file_out_path,
@@ -416,11 +416,11 @@ uint8_t decrypt_kyznechik_cbc(
         return 5; // ошибка при увеличении выходного файла
     }
 
-    *total_steps = (file_size.result - 6 - m) / 16;
+    *total_steps = (file_size.result - 6 - m) / 8;
 
     uint8_t **Ks;
-    kyznechik_init();
-    if (kyznechik_generate_keys(key, &Ks)) {
+    magma_init();
+    if (magma_generate_keys(key, &Ks)) {
         close_files(input_file, output_file);
         free(initial_vector);
         return 8; // не удалось создать ключи
@@ -428,7 +428,7 @@ uint8_t decrypt_kyznechik_cbc(
 
     uint8_t error = 0;
 
-    result = kyznechik_cbc_work(
+    result = magma_cbc_work(
         input_file,
         output_file,
         *total_steps,
@@ -439,15 +439,15 @@ uint8_t decrypt_kyznechik_cbc(
         M
     );
 
-    uint8_t buf[16];
+    uint8_t buf[8];
     error = remove_last_bytes(&(file_block_info){
         .file = output_file,
-        .offset = *total_steps * 16 - 16,
-        .data_size = 16,
+        .offset = *total_steps * 8 - 8,
+        .data_size = 8,
         .data = buf
     });
 
-    kyznechik_finalize(Ks);
+    magma_finalize(Ks);
     close_files(input_file, output_file);
     free(initial_vector);
 

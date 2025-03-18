@@ -4,6 +4,7 @@ project(lib_test C)
 set(CMAKE_C_STANDARD 11)
 
 include_directories(../magma/magma-base)
+include_directories(../magma/magma-cbc)
 
 add_executable(
         lib_test
@@ -11,4 +12,5 @@ add_executable(
 )
 
 target_link_libraries(lib_test PRIVATE magma-base)
+target_link_libraries(lib_test PRIVATE magma-cbc)
 target_compile_options(lib_test PRIVATE -msse4.2 -mavx -mrdrnd)

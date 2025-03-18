@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include "time.h"
 #include "magma.h"
+#include "magma-cbc.h"
 #include "stdint.h"
 
 int main() {
@@ -14,58 +15,58 @@ int main() {
                       85, 102, 119, 136, 153, 170, 187, 204, 221, 238, 255
                   };
 
-    uint8_t text[8] = {'C', 'L', 'A', 'N', ' ', 'Z', 'O', 'V'};
+
     magma_init();
     uint8_t **Ks;
     magma_generate_keys(magma_key, &Ks);
+    // uint8_t text[8] = {'C', 'L', 'A', 'N', ' ', 'Z', 'O', 'V'};
 
-    clock_t start = clock();
-    int const iters = 10000000;
-    for (int i = 0; i < iters; ++i) {
-        magma_encrypt_data((const uint8_t**)Ks, text, text);
-    }
-    clock_t end = clock();
-    double seconds = (double)(end - start) / CLOCKS_PER_SEC;
+    // clock_t start = clock();
+    // int const iters = 10000000;
+    // for (int i = 0; i < iters; ++i) {
+    //     magma_encrypt_data((const uint8_t**)Ks, text, text);
+    // }
+    // clock_t end = clock();
+    // double seconds = (double)(end - start) / CLOCKS_PER_SEC;
+    //
+    // printf("ENC %lf MB/s\n", 8 * iters / seconds / 1024 / 1024);
+    //
+    // start = clock();
+    // for (int i = 0; i < iters; ++i) {
+    //     magma_decrypt_data((const uint8_t**)Ks, text, text);
+    // }
+    // end = clock();
+    // seconds = (double)(end - start) / CLOCKS_PER_SEC;
+    //
+    // printf("DEC %lf MB/s", 8 * iters / seconds / 1024 / 1024);
 
-    printf("ENC %lf MB/s\n", 8 * iters / seconds / 1024 / 1024);
+    uint64_t curr = 0, total = 0;
 
-    start = clock();
-    for (int i = 0; i < iters; ++i) {
-        magma_decrypt_data((const uint8_t**)Ks, text, text);
-    }
-    end = clock();
-    seconds = (double)(end - start) / CLOCKS_PER_SEC;
+    int result = encrypt_magma_cbc(
+        L"../../../input.txt",
+        L"C:\\",
+        L"../../../middle.txt",
+        magma_key,
+        1,
+        &curr,
+        &total
+    );
 
-    printf("DEC %lf MB/s", 8 * iters / seconds / 1024 / 1024);
+    printf("%d\n", result);
+    printf("%llu %llu\n", curr, total);
 
+    result = decrypt_magma_cbc(
+        L"../../../middle.txt",
+        L"C:\\",
+        L"../../../output.txt",
+        magma_key,
+        1,
+        &curr,
+        &total
+    );
+
+    printf("%d\n", result);
+    printf("%llu %llu\n", curr, total);
     magma_finalize(Ks);
-    // uint64_t curr = 0, total = 0;
-    //
-    // int result = encrypt_kyznechik_cbc(
-    //     L"../../../input.txt",
-    //     L"C:\\",
-    //     L"../../../middle.txt",
-    //     key,
-    //     1,
-    //     &curr,
-    //     &total
-    // );
-    //
-    // printf("%d\n", result);
-    // printf("%llu %llu\n", curr, total);
-    //
-    // result = decrypt_kyznechik_cbc(
-    //     L"../../../middle.txt",
-    //     L"C:\\",
-    //     L"../../../output.txt",
-    //     key,
-    //     1,
-    //     &curr,
-    //     &total
-    // );
-    //
-    // printf("%d\n", result);
-    // printf("%llu %llu\n", curr, total);
-
     return 0;
 }

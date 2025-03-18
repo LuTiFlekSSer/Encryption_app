@@ -9,7 +9,6 @@
 typedef enum {
     KYZNECHIK = 0,
     MAGMA = 1,
-    GOST_89 = 2
 } CIPHER_TYPE;
 
 #define CIPHER_MODES 4
@@ -84,6 +83,6 @@ uint8_t check_files(HANDLE input_file, HANDLE output_file, uint64_t free_disk_sp
 uint8_t create_threads_data(uint16_t num_threads, thread_data **threads_data, DWORD **threads_id, HANDLE **threads);
 void delete_threads_data(thread_data *threads_data, DWORD *threads_id, HANDLE *threads);
 
-void initialize_s(uint8_t s, s_info *res);
+void initialize_s(uint8_t s, CIPHER_TYPE type, s_info *res);
 
 #endif
