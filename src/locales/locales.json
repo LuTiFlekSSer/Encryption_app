@@ -1,0 +1,32 @@
+{
+  "languages": {
+    "ru": "Русский",
+    "en": "English"
+  },
+  "strings": {
+    "home": {
+      "ru": "Главная",
+      "en": "Home"
+    },
+    "encrypt": {
+      "ru": "Шифр",
+      "en": "Encrypt"
+    },
+    "history": {
+      "ru": "История",
+      "en": "History"
+    },
+    "settings": {
+      "ru": "Настройки",
+      "en": "Settings"
+    },
+    "error": {
+      "ru": "Ошибка",
+      "en": "Error"
+    },
+    "close_error_message": {
+      "ru": "Дождитесь завершения шифрования",
+      "en": "Wait for the encryption to finish"
+    }
+  }
+}

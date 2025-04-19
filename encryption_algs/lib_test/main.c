@@ -45,7 +45,7 @@ int main() {
     int result = encrypt_magma_cbc(
         L"../../../input.txt",
         L"C:\\",
-        L"../../../middle.txt",
+        L"../../../input.txt",
         magma_key,
         1,
         &curr,
