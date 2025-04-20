@@ -8,7 +8,7 @@ from qfluentwidgets import SplashScreen, FluentIcon, MSFluentWindow, NavigationI
     setThemeColor, SystemThemeListener, InfoBar, InfoBarPosition
 from qframelesswindow.utils import getSystemAccentColor
 
-from src.db.data_base import DataBase
+from src.backend.db.data_base import DataBase
 from src.frontend.encrypt_window.encrypt_window import EncryptWindow
 from src.frontend.history_window.history_window import HistoryWindow
 from src.frontend.home_window.home_window import HomeWindow

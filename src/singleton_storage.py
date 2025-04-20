@@ -1,4 +1,4 @@
-from src.db.data_base import DataBase
+from src.backend.db.data_base import DataBase
 from src.global_flags import GlobalFlags
 from src.locales.locales import Locales
 

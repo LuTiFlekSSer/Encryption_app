@@ -45,8 +45,8 @@
       "en": "View the code and ask questions"
     },
     "lib_status": {
-      "ru": "Доступность режимов",
-      "en": "Availability of modes"
+      "ru": "Статус режимов",
+        "en": "Status of modes"
     }
   }
 }

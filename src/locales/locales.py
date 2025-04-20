@@ -6,7 +6,7 @@ import ctypes
 import json
 import locale
 
-from src.db.data_base import DataBase
+from src.backend.db.data_base import DataBase
 from src.locales import errors
 from src.utils.config import Config
 from src.utils.singleton import Singleton

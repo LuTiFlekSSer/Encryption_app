@@ -5,7 +5,7 @@ from qfluentwidgets import ScrollArea
 from src.frontend.home_window.banner import Banner
 from src.frontend.home_window.lib_info_card import LibInfoCardView
 from src.locales.locales import Locales
-from src.style_sheets.style_sheets import StyleSheet
+from src.frontend.style_sheets import StyleSheet
 
 
 class HomeWindow(ScrollArea):
