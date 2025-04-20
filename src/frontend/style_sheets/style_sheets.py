@@ -9,4 +9,4 @@ class StyleSheet(StyleSheetBase, Enum):
     HOME_WINDOW = 'home_window'
 
     def path(self, theme=Theme.AUTO):
-        return resource_path(f'src/style_sheets/qss/{self.value}.qss')
+        return resource_path(f'src/frontend/style_sheets/qss/{self.value}.qss')
