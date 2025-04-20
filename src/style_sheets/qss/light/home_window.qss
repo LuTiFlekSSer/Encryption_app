@@ -1,0 +1,8 @@
+QScrollArea {
+    border: none;
+    background-color: transparent;
+}
+
+#w_view {
+    background-color: transparent;
+}

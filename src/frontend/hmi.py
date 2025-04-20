@@ -32,6 +32,7 @@ class MainWindow(MSFluentWindow):
         self._themeListener.systemThemeChanged.connect(lambda: setTheme(Theme.AUTO))
 
         self.resize(*map(int, self._db.get_setting('window_size').split()))
+        self.setMinimumWidth(612)
         self.setWindowTitle(Config.APP_NAME)
         self.setWindowIcon(QIcon(resource_path('res/logo.png')))
         self._center()
@@ -115,6 +116,9 @@ class MainWindow(MSFluentWindow):
 
 
 def create_ui() -> tuple[QApplication, MainWindow]:
+    QApplication.setHighDpiScaleFactorRoundingPolicy(Qt.HighDpiScaleFactorRoundingPolicy.PassThrough)
+    QApplication.setAttribute(Qt.AA_EnableHighDpiScaling)
+
     app = QApplication(sys.argv)
     window = MainWindow(app)
     window.show()

@@ -27,6 +27,26 @@
     "close_error_message": {
       "ru": "Дождитесь завершения шифрования",
       "en": "Wait for the encryption to finish"
+    },
+    "add_task": {
+      "ru": "Добавить задачу",
+      "en": "Add task"
+    },
+    "add_task_description": {
+      "ru": "Зашифровать или расшифровать файл с заданными параметрами",
+      "en": "Encrypt or decrypt a file with the specified parameters"
+    },
+    "github": {
+      "ru": "GitHub репозиторий",
+      "en": "GitHub repo"
+    },
+    "github_description": {
+      "ru": "Посмотреть код и задать вопросы",
+      "en": "View the code and ask questions"
+    },
+    "lib_status": {
+      "ru": "Доступность режимов",
+      "en": "Availability of modes"
     }
   }
 }
