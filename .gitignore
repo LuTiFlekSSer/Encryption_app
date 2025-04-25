@@ -17,3 +17,5 @@
 
 /encryption_algs/build-dir/*
 /encryption_algs/lib_test/libs/*
+
+/build/*
