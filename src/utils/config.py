@@ -6,6 +6,7 @@ from src.utils.singleton import Singleton
 class Config(metaclass=Singleton):
     APP_NAME = 'GOST Encryptor'
     GITHUB_URL = 'https://github.com/LuTiFlekSSer/Encryption_app'
+    GITHUB_RELEASES_URL = 'https://github.com/LuTiFlekSSer/Encryption_app/releases'
     SPLASH_SCREEN_TIME = 2
 
     LOCALES_PATH = 'src/locales/locales.json'

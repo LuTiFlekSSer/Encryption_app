@@ -12,6 +12,7 @@ from src.backend.db.data_base import DataBase
 from src.frontend.encrypt_window.encrypt_window import EncryptWindow
 from src.frontend.history_window.history_window import HistoryWindow
 from src.frontend.home_window.home_window import HomeWindow
+from src.frontend.settings_window.settings_window import SettingsWindow
 from src.global_flags import GlobalFlags
 from src.locales.locales import Locales
 from src.utils.config import Config
@@ -21,6 +22,8 @@ from src.utils.utils import resource_path
 class MainWindow(MSFluentWindow):
     def __init__(self, app: QApplication):
         super().__init__()
+
+        self.ULTRA_MEGA_PARENT: str = 'parent'
 
         self._locales: Locales = Locales()
         self._db: DataBase = DataBase()
@@ -32,7 +35,7 @@ class MainWindow(MSFluentWindow):
         self._themeListener.systemThemeChanged.connect(lambda: setTheme(Theme.AUTO))
 
         self.resize(*map(int, self._db.get_setting('window_size').split()))
-        self.setMinimumWidth(612)
+        self.setMinimumWidth(840)
         self.setWindowTitle(Config.APP_NAME)
         self.setWindowIcon(QIcon(resource_path('res/logo.png')))
         self._center()
@@ -69,7 +72,7 @@ class MainWindow(MSFluentWindow):
         self._history_window = HistoryWindow(self._locales.get_string('history'), parent=self)
         self.addSubInterface(self._history_window, FluentIcon.HISTORY, self._locales.get_string('history'))
 
-        self._settings_window = HistoryWindow(self._locales.get_string('settings'), parent=self)
+        self._settings_window = SettingsWindow(self._locales.get_string('settings'), parent=self)
         self.addSubInterface(self._settings_window,
                              FluentIcon.SETTING,
                              self._locales.get_string('settings'),

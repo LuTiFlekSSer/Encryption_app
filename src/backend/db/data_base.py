@@ -12,7 +12,8 @@ TSettingName = Literal[
     'queue_size',
     'window_size',
     'window_mode',
-    'theme'
+    'theme',
+    'history_size'
 ]
 
 
@@ -50,10 +51,10 @@ class DataBase(metaclass=Singleton):
         set_default_value('language', 'None')
         set_default_value('threads', f'{cpu_count()}')
         set_default_value('queue_size', '2')
-        set_default_value('window_size', '950 600')
+        set_default_value('window_size', '1000 600')
         set_default_value('window_mode', 'normal')
         set_default_value('theme', 'AUTO')
-
+        set_default_value('history_size', '1000')
 
         self._connection.commit()
 

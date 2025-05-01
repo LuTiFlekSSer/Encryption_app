@@ -33,7 +33,7 @@ class HomeWindow(ScrollArea):
         self.setWidget(self._w_view)
         self.setWidgetResizable(True)
 
-        self._vl_view_layout.setContentsMargins(0, 0, 0, 40)
+        self._vl_view_layout.setContentsMargins(0, 0, 28, 40)
         self._vl_view_layout.setSpacing(40)
         self._vl_view_layout.setAlignment(Qt.AlignTop)
 

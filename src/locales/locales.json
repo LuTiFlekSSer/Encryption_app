@@ -46,7 +46,95 @@
     },
     "lib_status": {
       "ru": "Статус режимов",
-        "en": "Status of modes"
+      "en": "Status of modes"
+    },
+    "application": {
+      "ru": "Приложение",
+      "en": "Application"
+    },
+    "app_theme": {
+      "ru": "Тема приложения",
+      "en": "Application theme"
+    },
+    "app_theme_description": {
+      "ru": "Выберите тему приложения",
+      "en": "Select the application theme"
+    },
+    "dark_theme": {
+      "ru": "Темная",
+      "en": "Dark"
+    },
+    "light_theme": {
+      "ru": "Светлая",
+      "en": "Light"
+    },
+    "auto_theme": {
+      "ru": "Авто",
+      "en": "Auto"
+    },
+    "app_language": {
+      "ru": "Язык приложения",
+      "en": "Application language"
+    },
+    "app_language_description": {
+      "ru": "Выберите язык приложения",
+      "en": "Select the application language"
+    },
+    "turn_on": {
+      "ru": "Вкл.",
+      "en": "On"
+    },
+    "turn_off": {
+      "ru": "Откл.",
+      "en": "Off"
+    },
+    "notification": {
+      "ru": "Уведомление",
+      "en": "Notification"
+    },
+    "restart_notification": {
+      "ru": "Перезапустите приложение, чтобы изменения вступили в силу",
+      "en": "Restart the application for the changes to take effect"
+    },
+    "history_size": {
+      "ru": "Размер истории",
+      "en": "History size"
+    },
+    "history_size_description": {
+      "ru": "Выберите максимальный размер истории",
+      "en": "Select the maximum history size"
+    },
+    "about": {
+      "ru": "О программе",
+      "en": "About"
+    },
+    "about_description": {
+      "ru": "Версия {version}",
+      "en": "Version {version}"
+    },
+    "check_for_updates": {
+      "ru": "Проверить обновления",
+      "en": "Check for updates"
+    },
+    "encryption_params": {
+      "ru": "Параметры шифрования",
+      "en": "Encryption parameters"
+    },
+    "encryption_threads": {
+      "ru": "Количество потоков",
+      "en": "Number of threads"
+    },
+    "encryption_threads_description": {
+      "ru": "Выберите количество потоков, которые будут использоваться для шифрования одного файла",
+      "en": "Select the number of threads to be used for encrypting a single file"
+    },
+    "queue_width": {
+      "ru": "Ширина очереди",
+      "en": "Queue width"
+    },
+    "queue_width_description": {
+      "ru": "Выберите количество одновременно шифруемых файлов",
+      "en": "Select the number of files to be encrypted simultaneously"
     }
   }
 }
