@@ -10,6 +10,14 @@
 
 uint8_t const S = 64; // можно менять от 8 до 64 кратно 8
 
+char* get_cipher_name(){
+    return "magma";
+}
+
+char* get_mode_name(){
+    return "ctr";
+}
+
 uint8_t process_block(
     const uint8_t **Ks,
     file_block_info const *input_file_info,

@@ -10,6 +10,14 @@
 
 uint32_t const M = 8; // размер регистра сдвига можно менять кратно 8
 
+char* get_cipher_name(){
+    return "magma";
+}
+
+char* get_mode_name(){
+    return "cbc";
+}
+
 uint8_t encrypt_block(
     uint8_t const **Ks,
     file_block_info const *input_file_info,

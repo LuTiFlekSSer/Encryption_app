@@ -14,6 +14,10 @@ class Config(metaclass=Singleton):
     DB_PATH = f'{getenv('APPDATA')}/{APP_NAME}/'
     DB_FILENAME = 'database.db'
 
+    TEST_FILE_ENCRYPT = 'test_encrypt.txt'
+    TEST_FILE_DECRYPT = 'test_decrypt.txt'
+    TEST_FILE_SIZE = 1024 * 1024 * 10
+
     GRAY_COLOR_50 = '#F3F3F3'
     GRAY_COLOR_100 = '#DDDDDD'
     GRAY_COLOR_200 = '#C6C6C6'
@@ -24,4 +28,3 @@ class Config(metaclass=Singleton):
     GRAY_COLOR_700 = '#5E5E5E'
     GRAY_COLOR_800 = '#4B4B4B'
     GRAY_COLOR_900 = '#393939'
-
