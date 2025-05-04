@@ -6,6 +6,14 @@
 #include "magma.h"
 #include "utils.h"
 
+char* get_cipher_name(){
+    return "magma";
+}
+
+char* get_mode_name(){
+    return "ecb";
+}
+
 uint8_t process_block(
     const uint8_t **Ks,
     file_block_info const *input_file_info,

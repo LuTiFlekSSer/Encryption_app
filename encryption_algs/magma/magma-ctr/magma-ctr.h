@@ -24,4 +24,8 @@ uint8_t decrypt_magma_ctr(
     uint64_t *total_steps
 );
 
+char* get_cipher_name();
+
+char* get_mode_name();
+
 #endif
