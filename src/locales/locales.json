@@ -135,6 +135,10 @@
     "queue_width_description": {
       "ru": "Выберите количество одновременно шифруемых файлов",
       "en": "Select the number of files to be encrypted simultaneously"
+    },
+    "clear_history": {
+      "ru": "Очистить историю",
+      "en": "Clear history"
     }
   }
 }

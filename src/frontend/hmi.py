@@ -70,7 +70,8 @@ class MainWindow(MSFluentWindow):
         self.addSubInterface(self._encrypt_window, FluentIcon.VPN, self._locales.get_string('encrypt'))
 
         self._history_window = HistoryWindow(self._locales.get_string('history'), parent=self)
-        self.addSubInterface(self._history_window, FluentIcon.HISTORY, self._locales.get_string('history'))
+        button = self.addSubInterface(self._history_window, FluentIcon.HISTORY, self._locales.get_string('history'))
+        button.clicked.connect(self._history_window.on_click)
 
         self._settings_window = SettingsWindow(self._locales.get_string('settings'), parent=self)
         self.addSubInterface(self._settings_window,

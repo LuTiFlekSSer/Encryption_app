@@ -24,7 +24,6 @@ class SettingsWindow(ScrollArea):
         self._app_settings: AppSettings = AppSettings(self)
 
         self.__init_widgets()
-
         self._connect_widget_actions()
 
     def __init_widgets(self):
@@ -34,7 +33,7 @@ class SettingsWindow(ScrollArea):
         self._l_title.setText(self._locales.get_string('settings'))
         self._l_title.setTextColor(QColor(Config.GRAY_COLOR_900), QColor(Config.GRAY_COLOR_50))
 
-        self._vl_view_layout.setContentsMargins(28, 12, 28, 40)
+        self._vl_view_layout.setContentsMargins(28, 12, 28, 28)
         self._vl_view_layout.setSpacing(16)
         self._vl_view_layout.setAlignment(Qt.AlignTop)
 
