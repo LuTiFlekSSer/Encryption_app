@@ -14,6 +14,7 @@ class Config(metaclass=Singleton):
     DB_PATH = f'{getenv('APPDATA')}/{APP_NAME}/'
     DB_FILENAME = 'database.db'
 
+    LIBS_PATH = f'{getenv('APPDATA')}/{APP_NAME}/libs/'
     TEST_FILE_ENCRYPT = 'test_encrypt.txt'
     TEST_FILE_DECRYPT = 'test_decrypt.txt'
     TEST_FILE_SIZE = 1024 * 1024 * 10
