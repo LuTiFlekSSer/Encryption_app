@@ -2,7 +2,6 @@ import os
 import sys
 from os import PathLike
 
-from PyQt5.QtCore import QObject
 from PyQt5.QtWidgets import QWidget
 
 
@@ -15,7 +14,7 @@ def resource_path(relative_path: str | PathLike[str]) -> str:
     return os.path.join(base_path, relative_path)
 
 
-def find_mega_parent(widget: QObject) -> QObject:
+def find_mega_parent(widget: QWidget) -> QWidget:
     tmp_widget = widget
 
     while True:

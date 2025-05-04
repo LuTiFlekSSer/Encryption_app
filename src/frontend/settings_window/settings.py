@@ -1,6 +1,6 @@
 from typing import Union
 
-from PyQt5.QtCore import QUrl, QObject, Qt, pyqtSignal
+from PyQt5.QtCore import QUrl, QObject, Qt
 from PyQt5.QtGui import QDesktopServices, QColor, QIcon
 from PyQt5.QtWidgets import QWidget, QVBoxLayout
 from qfluentwidgets import TitleLabel, FluentIcon, PrimaryPushSettingCard, SwitchSettingCard, ComboBoxSettingCard, \
@@ -65,8 +65,6 @@ class CustomComboBoxSettingCard(ComboBoxSettingCard):
 
 
 class SpinBoxSettingCard(SettingCard):
-    valueChanged = pyqtSignal(int)
-
     def __init__(self, configItem, icon: Union[str, QIcon, FluentIconBase], title, content=None, parent=None):
         super().__init__(icon, title, content, parent)
         self.configItem = configItem
@@ -84,16 +82,24 @@ class SpinBoxSettingCard(SettingCard):
         self.hBoxLayout.addWidget(self.spin_box, 0, Qt.AlignRight)
         self.hBoxLayout.addSpacing(16)
 
-        configItem.valueChanged.connect(self.setValue)
-        self.spin_box.valueChanged.connect(self.__onValueChanged)
-
-    def __onValueChanged(self, value: int):
-        self.setValue(value)
-        self.valueChanged.emit(value)
+        self.spin_box.valueChanged.connect(self.setValue)
+        self._locales: Locales = Locales()
+        self._hmi: QObject = find_mega_parent(self)
 
     def setValue(self, value):
         custom_config.set(self.configItem, value)
         self.spin_box.setValue(value)
+
+        if self.configItem == custom_config.queue_width:
+            InfoBar.info(
+                title=self._locales.get_string('notification'),
+                content=self._locales.get_string('restart_notification'),
+                orient=Qt.Horizontal,
+                position=InfoBarPosition.BOTTOM_RIGHT,
+                duration=3000,
+                isClosable=False,
+                parent=self._hmi
+            )
 
 
 class SettingSection(QWidget):

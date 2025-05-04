@@ -23,6 +23,7 @@ class HistoryWindow(QWidget):
         self._history: History = History(self)
 
         self.__init_widgets()
+        self._connect_widget_actions()
 
     def __init_widgets(self):
         StyleSheet.HISTORY_WINDOW.apply(self)

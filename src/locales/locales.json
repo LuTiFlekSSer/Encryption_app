@@ -139,6 +139,22 @@
     "clear_history": {
       "ru": "Очистить историю",
       "en": "Clear history"
+    },
+    "clear_history_description": {
+      "ru": "Очистить историю шифрования",
+      "en": "Clear the encryption history"
+    },
+    "clear_history_message": {
+      "ru": "Вы уверены, что хотите очистить историю?",
+      "en": "Are you sure you want to clear the history?"
+    },
+    "yes": {
+      "ru": "Да",
+      "en": "Yes"
+    },
+    "no": {
+      "ru": "Нет",
+      "en": "No"
     }
   }
 }

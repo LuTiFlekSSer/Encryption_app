@@ -1,9 +1,10 @@
-from PyQt5.QtCore import pyqtSignal, Qt
+from PyQt5.QtCore import pyqtSignal, Qt, QTimer
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QScrollArea, QSizePolicy
 
 
 class PagedListView(QWidget):
-    pageChanged: pyqtSignal = pyqtSignal()
+    page_changed: pyqtSignal = pyqtSignal()
+    pagination_changed: pyqtSignal = pyqtSignal(int, int)
 
     def __init__(self, item_widget_class, parent=None):
         super().__init__(parent=parent)
@@ -16,6 +17,8 @@ class PagedListView(QWidget):
 
         self._first_visible_index: int = 0
         self._visible_count: int = 0
+        self._last_pagination_state: tuple[int, int] = (-1, -1)
+        self._pending_pagination_emit: bool = False
 
         self._layout: QVBoxLayout = QVBoxLayout(self)
         self._layout.setContentsMargins(0, 0, 0, 0)
@@ -62,6 +65,7 @@ class PagedListView(QWidget):
 
         self._visible_count = new_visible_count
         self._update_widgets()
+        self._emit_pagination_changed()
 
     def _update_widgets(self):
         start = self._first_visible_index
@@ -81,7 +85,7 @@ class PagedListView(QWidget):
             else:
                 widget.hide()
 
-        self.pageChanged.emit()
+        self.page_changed.emit()
 
     def next_page(self):
         if self.can_go_next():
@@ -100,7 +104,7 @@ class PagedListView(QWidget):
         return self._first_visible_index > 0
 
     def add_item(self, data):
-        self._items.append(data)
+        self._items.insert(0, data)
         self.update_view()
 
     def clear_items(self):
@@ -120,14 +124,56 @@ class PagedListView(QWidget):
         if self._visible_count == 0:
             self.update_view()
 
-        max_page = max(0, (len(self._items) - 1) // self._visible_count)
+        if len(self._items) != 0:
+            max_page = max(0, (len(self._items) - 1) // self._visible_count)
+        else:
+            max_page = 0
         page_number = max(0, min(page_number, max_page))
 
         self._first_visible_index = page_number * self._visible_count
-        self.update_view()
+        self._update_widgets()
 
-    def get_total_pages(self):
+    def get_current_page(self) -> int:
         if self._visible_count == 0:
             self.update_view()
 
-        return max(0, (len(self._items) - 1) // self._visible_count)
+        return self._first_visible_index // self._visible_count
+
+    def get_total_pages(self) -> int:
+        if self._visible_count == 0:
+            self.update_view()
+
+        if len(self._items) == 0:
+            return 0
+
+        return ((len(self._items) - 1) // self._visible_count) + 1
+
+    def showEvent(self, event):
+        super().showEvent(event)
+        self.update_view()
+
+    def _emit_pagination_changed(self):
+        if self._pending_pagination_emit:
+            return
+        self._pending_pagination_emit = True
+        QTimer.singleShot(0, self._emit_pagination_delayed)
+
+    def _emit_pagination_delayed(self):
+        self._pending_pagination_emit = False
+
+        current_page = self.get_current_page()
+        total_pages = self.get_total_pages()
+        new_state = (current_page, total_pages)
+
+        if new_state != self._last_pagination_state:
+            self._last_pagination_state = new_state
+            self.pagination_changed.emit(current_page, total_pages)
+
+    def strip_last_items(self, max_size: int):
+        if len(self._items) > max_size:
+            self._items = self._items[:max_size]
+            if len(self._items) == 0:
+                self.clear_items()
+            else:
+                self._first_visible_index = min(self._first_visible_index, max_size - 1)
+                self.update_view()
