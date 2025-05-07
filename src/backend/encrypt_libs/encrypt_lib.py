@@ -16,6 +16,24 @@ class LibStatus(Enum):
     TEST_ERROR = 4
 
 
+class EncryptResult(Enum):
+    SUCCESS = 0
+    FILE_NOT_FOUND = 1
+    FILE_WRITE_ERROR = 2
+    FILE_READ_ERROR = 3
+    FILE_SIZE_ERROR = 4
+    FILE_OPEN_ERROR = 5
+    FILE_CLOSE_ERROR = 6
+    FILE_SEEK_ERROR = 7
+    FILE_READ_WRITE_ERROR = 8
+    FILE_NOT_ENOUGH_SPACE = 9
+    INVALID_KEY_SIZE = 10
+    INVALID_MODE = 11
+    INVALID_CIPHER = 12
+    INVALID_FILE_TYPE = 13
+    INVALID_FILE_NAME = 14
+
+
 class EncryptLib:
     def __init__(self, lib_path: str):
         self._load_status: LibStatus = LibStatus.SUCCESS
@@ -114,7 +132,7 @@ class EncryptLib:
                 num_threads: int,
                 cur_progress: ctypes.POINTER(ctypes.c_uint64),
                 total_progress: ctypes.POINTER(ctypes.c_uint64)
-                ):
+                ) -> EncryptResult:
         return self._encrypt_func(file_in_path,
                                   disk_out_name,
                                   file_out_path,
@@ -131,7 +149,7 @@ class EncryptLib:
                 num_threads: int,
                 cur_progress: ctypes.POINTER(ctypes.c_uint64),
                 total_progress: ctypes.POINTER(ctypes.c_uint64)
-                ):
+                ) -> EncryptResult:
         return self._decrypt_func(file_in_path,
                                   disk_out_name,
                                   file_out_path,
@@ -143,28 +161,29 @@ class EncryptLib:
 
 if __name__ == '__main__':  # todo emum для ошибок
     os.environ['PATH'] = f'{os.path.abspath('../../../encryption_algs/libs/release/')}{os.pathsep}{os.environ['PATH']}'
-    print(type(ctypes.POINTER(ctypes.c_uint64)))
-    exit(0)
 
     aboba = EncryptLib('../../../encryption_algs/libs/release/libmagma-cbc.dll')
     if aboba._load_status == LibStatus.SUCCESS:
         print('sosal')
+        sosal = ctypes.c_uint64(0)
         cur = ctypes.byref(ctypes.c_uint64(0))
-        total = ctypes.byref(ctypes.c_uint64(0))
+        total = ctypes.byref(sosal)
         aboba.encrypt('../../../input.txt',
                       'C:',
-                      '../../../middle.txt',
+                      '../../../input.txt',
                       bytearray(b'This is a 32-byte long bytearray!!')[:32],
                       1,
                       cur,
                       total)
 
-        aboba.decrypt('../../../middle.txt',
+        aboba.decrypt('../../../input.txt',
                       'C:',
-                      '../../../output.txt',
+                      '../../../input.txt',
                       bytearray(b'This is a 32-byte long bytearray!!')[:32],
                       1,
                       cur,
                       total)
+
+        print(sosal.value)
     else:
         print(aboba._load_status)

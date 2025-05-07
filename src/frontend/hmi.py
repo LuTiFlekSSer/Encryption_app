@@ -104,6 +104,8 @@ class MainWindow(MSFluentWindow):
             self._themeListener.terminate()
             self._themeListener.deleteLater()
 
+            self._global_flags.stop_event.set()
+
             event.accept()
         else:
             InfoBar.error(

@@ -1,14 +1,17 @@
 import ctypes
+import hashlib
 import os
+from collections import defaultdict
 from concurrent.futures import Future
 from concurrent.futures.thread import ThreadPoolExecutor
-import hashlib
-from dataclasses import dataclass
 from threading import Lock
+from typing import Callable, Optional
 
 from PyQt5.QtCore import QObject, pyqtSignal
+
 from src.backend.db.data_base import DataBase
-from src.backend.encrypt_libs.encrypt_lib import EncryptLib, LibStatus
+from src.backend.encrypt_libs.encrypt_lib import EncryptLib, LibStatus, EncryptResult
+from src.backend.encrypt_libs.errors import AddTaskError
 from src.utils.config import Config
 from src.utils.singleton import Singleton
 
@@ -17,14 +20,19 @@ class Events(QObject):
     sig_update_progress: pyqtSignal = pyqtSignal(str, int, int)
 
 
-UInt64Pointer = ctypes.POINTER(ctypes.c_uint64)
-
-
-@dataclass
 class TTask:
-    current: ctypes.POINTER(ctypes.c_uint64)
-    total: ctypes.POINTER(ctypes.c_uint64)
-    future: Future
+    def __init__(self,
+                 current: ctypes.c_uint64,
+                 total: ctypes.c_uint64,
+                 output_path: str,
+                 input_path: str,
+                 ):
+        self.current: ctypes.c_uint64 = current
+        self.total: ctypes.c_uint64 = total
+        self.future: Optional[Future] = None
+        self.input_path: str = input_path
+        self.output_path: str = output_path
+        self.last_progress: int = -228
 
 
 class Loader(metaclass=Singleton):
@@ -41,8 +49,9 @@ class Loader(metaclass=Singleton):
         self._db: DataBase = DataBase()
         self._pool: ThreadPoolExecutor = ThreadPoolExecutor(max_workers=int(self._db.get_setting('queue_size')))
         self._lock: Lock = Lock()
-        self._running: dict[str, TTask] = {}
-        self._in_out: dict[str, str] = {}
+        self._running: defaultdict[str, int] = defaultdict(int)
+        self._output_files: set[str] = set()
+        self._queue: set[TTask] = set()
 
         for file_name in os.listdir(path_to_libs):
             if file_name.endswith('.dll'):
@@ -57,24 +66,63 @@ class Loader(metaclass=Singleton):
                 mode: str,
                 file_in_path: str,
                 file_out_path: str,
-                hash_password: str): # ^-^ Может завтра? ^-^
-        if self._in_out[file_in_path]==file_in_path: # Входной файл равен выходному
-            raise ValueError
+                hash_password: str):
+        with self._lock:
+            if file_in_path in self._output_files or \
+                    file_out_path in self._output_files or \
+                    file_out_path in self._running:
+                raise AddTaskError
 
-        cur = ctypes.byref(ctypes.c_uint64(0))
-        total = ctypes.byref(ctypes.c_uint64(0))
+        cur = ctypes.c_uint64(0)
+        total = ctypes.c_uint64(0)
         key = bytearray(hashlib.sha512(hash_password.encode()).digest())  # todo sha512 -> PBKDF2
         drive, _ = os.path.splitdrive(file_out_path)
         threads = int(self._db.get_setting('threads'))
 
-        self._pool.submit(self._libs[mode].encrypt,
-                          file_in_path,
-                          drive,
-                          file_out_path,
-                          key,
-                          threads,
-                          cur,
-                          total)
+        task = TTask(
+            current=cur,
+            total=total,
+            output_path=file_out_path,
+            input_path=file_in_path
+        )
+        with self._lock:
+            future = self._pool.submit(self._execute_task,
+                                       self._libs[mode].encrypt,
+                                       file_in_path,
+                                       drive,
+                                       file_out_path,
+                                       key,
+                                       threads,
+                                       ctypes.byref(cur),
+                                       ctypes.byref(total),
+                                       task)
+
+            task.future = future
+
+            self._running[file_in_path] += 1
+            self._output_files.add(file_out_path)
+
+    def _execute_task(self,
+                      func: Callable,
+                      file_in_path: str,
+                      drive: str,
+                      file_out_path: str,
+                      key: bytearray,
+                      num_threads: int,
+                      cur_progress: ctypes.POINTER(ctypes.c_uint64),
+                      total_progress: ctypes.POINTER(ctypes.c_uint64),
+                      task: TTask
+                      ) -> EncryptResult:
+        with self._lock:
+            self._queue.add(task)
+
+        return func(file_in_path,
+                    drive,
+                    file_out_path,
+                    key,
+                    num_threads,
+                    cur_progress,
+                    total_progress)
 
     @property
     def status(self) -> dict[str, LibStatus]:
@@ -92,4 +140,23 @@ class Loader(metaclass=Singleton):
         return st
 
     def exec(self):
-        pass
+        with self._lock:
+            to_remove = set()
+
+            for task in self._queue:
+                if (last_progres := (task.current.value // task.current.value * 100)) != task.last_progress:
+                    self.events.sig_update_progress.emit(task.output_path,
+                                                         task.current.value,
+                                                         task.total.value)
+                    task.last_progress = last_progres
+
+                if task.future.done():
+                    to_remove.add(task)
+
+                    self._running[task.input_path] -= 1
+                    if self._running[task.input_path] == 0:
+                        del self._running[task.input_path]
+
+                    self._output_files.remove(task.output_path)
+
+            self._queue -= to_remove

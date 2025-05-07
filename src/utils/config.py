@@ -29,3 +29,5 @@ class Config(metaclass=Singleton):
     GRAY_COLOR_700 = '#5E5E5E'
     GRAY_COLOR_800 = '#4B4B4B'
     GRAY_COLOR_900 = '#393939'
+
+    THREAD_SLEEP = 0.01
