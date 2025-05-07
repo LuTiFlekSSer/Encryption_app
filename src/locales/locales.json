@@ -159,6 +159,18 @@
     "encrypt_title": {
       "ru": "Шифрование",
       "en": "Encryption"
+    },
+    "success": {
+      "ru": "Библиотека успешно загружена",
+      "en": "Library loaded successfully"
+    },
+    "lib_load_funcs_error": {
+      "ru": "Не найдены функции шифрования",
+      "en": "Encryption functions not found"
+    },
+    "lib_test_error": {
+      "ru": "Библиотека не прошла тесты",
+      "en": "Library did not pass the test"
     }
   }
 }

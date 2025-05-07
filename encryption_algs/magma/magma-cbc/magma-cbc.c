@@ -10,11 +10,11 @@
 
 uint32_t const M = 8; // размер регистра сдвига можно менять кратно 8
 
-char* get_cipher_name(){
+char* get_cipher_name() {
     return "magma";
 }
 
-char* get_mode_name(){
+char* get_mode_name() {
     return "cbc";
 }
 
@@ -115,13 +115,13 @@ uint8_t magma_cbc_work(
     }
 
     if (buf == NULL) {
-        return 2;
+        return 2; // Ошибка при выделении памяти
     }
 
     HANDLE event = CreateEvent(NULL, TRUE, FALSE, NULL);
     if (event == NULL) {
         free(buf);
-        return 1; //Ошибка при шифровании
+        return 2; // Ошибка при выделении памяти
     }
 
     uint64_t const total = total_steps * 8 / BUF_SIZE,
@@ -141,7 +141,7 @@ uint8_t magma_cbc_work(
                         event) != 0) {
             free(buf);
             CloseHandle(event);
-            return 1;
+            return 1; // Ошибка при обработке файла
         }
 
         if ((i + 1) % 512 == 0) {
@@ -163,7 +163,7 @@ uint8_t magma_cbc_work(
                         event) != 0) {
             free(buf);
             CloseHandle(event);
-            return 1;
+            return 1; // Ошибка при обработке файла
         }
 
         *current_step += mod / 8;
@@ -183,7 +183,7 @@ uint8_t encrypt_last_bytes(const uint8_t **Ks, uint8_t const *r, uint32_t const 
 
     func_result const f_result = write_block_to_file(block_info, NULL);
     if (f_result.error != 0) {
-        return 1;
+        return 1; // Ошибка при записи в файл
     }
 
     return 0;
@@ -237,7 +237,7 @@ uint8_t encrypt_magma_cbc(
         if (f_result.error != 0) {
             close_files(input_file, output_file);
             free(metadata);
-            return 6; // Не удалось записать метаданные
+            return 6; // Не удалось считать метаданные
         }
 
         metadata[mod] = 1;
@@ -262,12 +262,12 @@ uint8_t encrypt_magma_cbc(
     if (result == 1) {
         free(metadata);
         free(initial_vector);
-        return 4; // недостаточно места на диске
+        return 4; // Недостаточно места на диске
     }
     if (result == 2) {
         free(metadata);
         free(initial_vector);
-        return 5; // ошибка при увеличении выходного файла
+        return 5; // Ошибка при увеличении выходного файла
     }
 
     func_result const f_result = write_metadata_to_file(
@@ -291,7 +291,7 @@ uint8_t encrypt_magma_cbc(
         close_files(input_file, output_file);
         free(metadata);
         free(initial_vector);
-        return 8; // не удалось создать ключи
+        return 8; // Не удалось создать ключи
     }
 
     uint8_t error = 0;
@@ -319,17 +319,22 @@ uint8_t encrypt_magma_cbc(
     free(metadata);
     free(initial_vector);
 
-    if (error != 0 or result != 0) {
-        return 9; //ошибка при шифровании
+    if (result == 1) {
+        return 9; // Ошибка при шифровании (обработка файлов)
     }
-
+    if (result == 2) {
+        return 10; // Ошибка при шифровании (выделение памяти)
+    }
+    if (error == 1) {
+        return 11; // Ошибка при шифровании (запись последних байт)
+    }
     return 0;
 }
 
 uint8_t remove_last_bytes(file_block_info const *block_info) {
     func_result const result = read_block_from_file(block_info, NULL);
     if (result.error != 0) {
-        return 1; // ошибка при чтении файла
+        return 1; // Ошибка при чтении файла
     }
 
     uint8_t strip_size = 0;
@@ -341,11 +346,11 @@ uint8_t remove_last_bytes(file_block_info const *block_info) {
     out_file_size.QuadPart = (int64_t)block_info->offset - strip_size + 7;
 
     if (SetFilePointerEx(block_info->file, out_file_size, NULL, FILE_BEGIN) == 0) {
-        return 2; // ошибка при изменении размера файла
+        return 2; // Ошибка при изменении размера файла
     }
 
     if (!SetEndOfFile(block_info->file)) {
-        return 2; // ошибка при изменении размера файла
+        return 2; // Ошибка при изменении размера файла
     }
 
     return 0;
@@ -417,11 +422,11 @@ uint8_t decrypt_magma_cbc(
     uint8_t result = check_files(input_file, output_file, disk_space.result, file_size.result - 6 - m, 0);
     if (result == 1) {
         free(initial_vector);
-        return 4; // недостаточно места на диске
+        return 4; // Недостаточно места на диске
     }
     if (result == 2) {
         free(initial_vector);
-        return 5; // ошибка при увеличении выходного файла
+        return 5; // Ошибка при уменьшении выходного файла
     }
 
     *total_steps = (file_size.result - 6 - m) / 8;
@@ -431,7 +436,7 @@ uint8_t decrypt_magma_cbc(
     if (magma_generate_keys(key, &Ks)) {
         close_files(input_file, output_file);
         free(initial_vector);
-        return 8; // не удалось создать ключи
+        return 8; // Не удалось создать ключи
     }
 
     uint8_t error = 0;
@@ -459,9 +464,17 @@ uint8_t decrypt_magma_cbc(
     close_files(input_file, output_file);
     free(initial_vector);
 
-    if (error != 0 or result != 0) {
-        return 9; //ошибка при расшифровании
+    if (result == 1) {
+        return 9; // Ошибка при расшифровании (обработка файлов)
     }
-
+    if (result == 2) {
+        return 10; // Ошибка при расшифровании (выделение памяти)
+    }
+    if (error == 1) {
+        return 11; // Ошибка при расшифровании (чтение последних байт)
+    }
+    if (error == 2) {
+        return 5; // Ошибка при уменьшении выходного файла
+    }
     return 0;
 }

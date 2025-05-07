@@ -1,12 +1,13 @@
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QColor
 from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout, QWidget
-from qfluentwidgets import CardWidget, InfoBarIcon, IconWidget, StrongBodyLabel, CaptionLabel, TitleLabel, FlowLayout
+from qfluentwidgets import InfoBarIcon, IconWidget, StrongBodyLabel, CaptionLabel, TitleLabel, FlowLayout, \
+    SimpleCardWidget
 
 from src.utils.config import Config
 
 
-class LibInfoCard(CardWidget):
+class LibInfoCard(SimpleCardWidget):
     def __init__(self,
                  title: str,
                  description: str,
@@ -26,7 +27,7 @@ class LibInfoCard(CardWidget):
 
         self._iw_icon: IconWidget = IconWidget(self)
         self._iw_icon.setIcon(InfoBarIcon.SUCCESS if status else InfoBarIcon.ERROR)
-        self._iw_icon.setFixedSize(40, 40)
+        self._iw_icon.setFixedSize(32, 32)
 
         self._l_title: StrongBodyLabel = StrongBodyLabel(self)
         self._l_title.setText(title)

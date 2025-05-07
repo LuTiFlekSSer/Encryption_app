@@ -18,20 +18,17 @@ class LibStatus(Enum):
 
 class EncryptResult(Enum):
     SUCCESS = 0
-    FILE_NOT_FOUND = 1
-    FILE_WRITE_ERROR = 2
-    FILE_READ_ERROR = 3
-    FILE_SIZE_ERROR = 4
-    FILE_OPEN_ERROR = 5
-    FILE_CLOSE_ERROR = 6
-    FILE_SEEK_ERROR = 7
-    FILE_READ_WRITE_ERROR = 8
-    FILE_NOT_ENOUGH_SPACE = 9
-    INVALID_KEY_SIZE = 10
-    INVALID_MODE = 11
-    INVALID_CIPHER = 12
-    INVALID_FILE_TYPE = 13
-    INVALID_FILE_NAME = 14
+    DISK_INFO_FAILURE = 1
+    FILE_OPEN_FAILURE = 2
+    FILE_SIZE_FAILURE = 3
+    INSUFFICIENT_DISK_SPACE = 4
+    OUTPUT_FILE_RESIZE_ERROR = 5
+    METADATA_PROCESSING_ERROR = 6
+    THREAD_CREATION_FAILURE = 7
+    KEY_CREATION_FAILURE = 8
+    ENCRYPTION_FILE_PROCESSING_ERROR = 9
+    ENCRYPTION_MEMORY_ALLOCATION_ERROR = 10
+    ENCRYPTION_FINAL_BYTES_ERROR = 11
 
 
 class EncryptLib:
@@ -133,13 +130,13 @@ class EncryptLib:
                 cur_progress: ctypes.POINTER(ctypes.c_uint64),
                 total_progress: ctypes.POINTER(ctypes.c_uint64)
                 ) -> EncryptResult:
-        return self._encrypt_func(file_in_path,
-                                  disk_out_name,
-                                  file_out_path,
-                                  (ctypes.c_uint8 * len(key)).from_buffer(key),
-                                  num_threads,
-                                  cur_progress,
-                                  total_progress)
+        return EncryptResult(self._encrypt_func(file_in_path,
+                                                disk_out_name,
+                                                file_out_path,
+                                                (ctypes.c_uint8 * len(key)).from_buffer(key),
+                                                num_threads,
+                                                cur_progress,
+                                                total_progress))
 
     def decrypt(self,
                 file_in_path: str,
@@ -150,13 +147,13 @@ class EncryptLib:
                 cur_progress: ctypes.POINTER(ctypes.c_uint64),
                 total_progress: ctypes.POINTER(ctypes.c_uint64)
                 ) -> EncryptResult:
-        return self._decrypt_func(file_in_path,
-                                  disk_out_name,
-                                  file_out_path,
-                                  (ctypes.c_uint8 * len(key)).from_buffer(key),
-                                  num_threads,
-                                  cur_progress,
-                                  total_progress)
+        return EncryptResult(self._decrypt_func(file_in_path,
+                                                disk_out_name,
+                                                file_out_path,
+                                                (ctypes.c_uint8 * len(key)).from_buffer(key),
+                                                num_threads,
+                                                cur_progress,
+                                                total_progress))
 
 
 if __name__ == '__main__':  # todo emum для ошибок

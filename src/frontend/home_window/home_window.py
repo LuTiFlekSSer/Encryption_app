@@ -2,10 +2,19 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QWidget, QVBoxLayout
 from qfluentwidgets import ScrollArea
 
+from src.backend.encrypt_libs.encrypt_lib import LibStatus
+from src.backend.encrypt_libs.loader import Loader
 from src.frontend.home_window.banner import Banner
 from src.frontend.home_window.lib_info_card import LibInfoCardView
-from src.locales.locales import Locales
 from src.frontend.style_sheets.style_sheets import StyleSheet
+from src.locales.locales import Locales
+
+locales = Locales()
+map_status_to_description: dict[LibStatus, str] = {
+    LibStatus.SUCCESS: locales.get_string('success'),
+    LibStatus.LOAD_FUNCS_ERROR: locales.get_string('lib_load_funcs_error'),
+    LibStatus.TEST_ERROR: locales.get_string('lib_test_error'),
+}
 
 
 class HomeWindow(ScrollArea):
@@ -16,6 +25,7 @@ class HomeWindow(ScrollArea):
 
         self._banner: Banner = Banner(self)
         self._lib_info_cards: LibInfoCardView = LibInfoCardView(self._locales.get_string('lib_status'), self)
+        self._loader: Loader = Loader()
 
         self.__initWidget()
 
@@ -41,9 +51,9 @@ class HomeWindow(ScrollArea):
         self._vl_view_layout.addWidget(self._lib_info_cards, 1)
 
     def _connect_widget_actions(self):
-        for i in range(10):
+        for mode, status in self._loader.status.items():
             self._lib_info_cards.add_card(
-                f'lib_status_{i}',
-                '12313e12312123123123',
-                i % 2 == 0
+                mode,
+                map_status_to_description[status],
+                status == LibStatus.SUCCESS
             )

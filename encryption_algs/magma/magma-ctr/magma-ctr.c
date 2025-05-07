@@ -57,14 +57,14 @@ DWORD WINAPI magma_ctr_thread(LPVOID raw_data) {
 
     if (buf == NULL) {
         *(data->error) = 2;
-        return 2;
+        return 2; // Ошибка при выделении памяти
     }
 
     HANDLE event = CreateEvent(NULL, TRUE, FALSE, NULL);
     if (event == NULL) {
         *(data->error) = 2;
         free(buf);
-        return 2;
+        return 2; // Ошибка при выделении памяти
     }
 
     uint64_t const total = (data->end - data->start) * data->s_data->CIPHER_BLOCK_SIZE / BUF_SIZE,
@@ -77,7 +77,7 @@ DWORD WINAPI magma_ctr_thread(LPVOID raw_data) {
         if (*(data->error) != 0) {
             free(buf);
             CloseHandle(event);
-            return 1;
+            return 1; // Ошибка при обработке файла
         }
 
         input_file_info.offset = output_file_info.offset = BUF_SIZE * i + data->start * data->s_data->CIPHER_BLOCK_SIZE;
@@ -91,7 +91,7 @@ DWORD WINAPI magma_ctr_thread(LPVOID raw_data) {
             *(data->error) = 1;
             free(buf);
             CloseHandle(event);
-            return 1;
+            return 1; // Ошибка при обработке файла
         }
 
         if ((i + 1) % 512 == 0) {
@@ -109,7 +109,7 @@ DWORD WINAPI magma_ctr_thread(LPVOID raw_data) {
         if (*(data->error) != 0) {
             free(buf);
             CloseHandle(event);
-            return 1;
+            return 1; // Ошибка при обработке файла
         }
 
         input_file_info.offset = output_file_info.offset = total * BUF_SIZE + data->start * data->s_data->
@@ -125,7 +125,7 @@ DWORD WINAPI magma_ctr_thread(LPVOID raw_data) {
             *(data->error) = 1;
             free(buf);
             CloseHandle(event);
-            return 1;
+            return 1; // Ошибка при обработке файла
         }
 
         EnterCriticalSection(data->lock);
@@ -149,7 +149,7 @@ uint8_t encrypt_last_bytes(const uint8_t **Ks, uint64_t gamma, file_block_info c
 
     func_result const f_result = write_block_to_file(block_info, NULL);
     if (f_result.error != 0) {
-        return 1;
+        return 1; // Ошибка при записи в файл
     }
 
     return 0;
@@ -207,10 +207,10 @@ uint8_t encrypt_magma_ctr(
     uint8_t result = check_files(input_file, output_file, disk_space.result, file_size.result, mod + 2);
 
     if (result == 1) {
-        return 4; // недостаточно места на диске
+        return 4; // Недостаточно места на диске
     }
     if (result == 2) {
-        return 5; // ошибка при увеличении выходного файла
+        return 5; // Ошибка при увеличении выходного файла
     }
 
     func_result f_result = write_metadata_to_file(
@@ -239,7 +239,7 @@ uint8_t encrypt_magma_ctr(
 
     if (f_result.error != 0) {
         close_files(input_file, output_file);
-        return 6; // Не удалось записать метаданные
+        return 6; // Не удалось считать метаданные
     }
 
 
@@ -249,7 +249,7 @@ uint8_t encrypt_magma_ctr(
 
     if (create_threads_data(num_threads, &threads_data, &threads_id, &threads) != 0) {
         close_files(input_file, output_file);
-        return 7; // не удалось создать потоки
+        return 7; // Не удалось создать потоки
     }
 
     uint8_t **Ks;
@@ -257,7 +257,7 @@ uint8_t encrypt_magma_ctr(
     if (magma_generate_keys(key, &Ks)) {
         close_files(input_file, output_file);
         delete_threads_data(threads_data, threads_id, threads);
-        return 8; // не удалось создать ключи
+        return 8; // Не удалось создать ключи
     }
 
     CRITICAL_SECTION lock;
@@ -320,10 +320,15 @@ uint8_t encrypt_magma_ctr(
     DeleteCriticalSection(&lock);
     close_files(input_file, output_file);
 
-    if (error != 0 or result != 0) {
-        return 9; //ошибка при шифровании
+    if (error == 1) {
+        return 9; // Ошибка при шифровании (обработка файлов)
     }
-
+    if (error == 2) {
+        return 10; // Ошибка при шифровании (выделение памяти)
+    }
+    if (result == 1) {
+        return 11; // Ошибка при шифровании (запись последних байт)
+    }
     return 0;
 }
 
@@ -358,10 +363,10 @@ uint8_t decrypt_magma_ctr(
 
     uint8_t result = check_files(input_file, output_file, disk_space.result, file_size.result - 7, 0);
     if (result == 1) {
-        return 4; // недостаточно места на диске
+        return 4; // Недостаточно места на диске
     }
     if (result == 2) {
-        return 5; // ошибка при увеличении выходного файла
+        return 5; // Ошибка при увеличении выходного файла
     }
 
     uint8_t metadata[8];
@@ -411,7 +416,7 @@ uint8_t decrypt_magma_ctr(
 
     if (create_threads_data(num_threads, &threads_data, &threads_id, &threads) != 0) {
         close_files(input_file, output_file);
-        return 7; // не удалось создать потоки
+        return 7; // Не удалось создать потоки
     }
 
     uint8_t **Ks;
@@ -419,7 +424,7 @@ uint8_t decrypt_magma_ctr(
     if (magma_generate_keys(key, &Ks)) {
         close_files(input_file, output_file);
         delete_threads_data(threads_data, threads_id, threads);
-        return 8; // не удалось создать ключи
+        return 8; // Не удалось создать ключи
     }
 
     CRITICAL_SECTION lock;
@@ -483,9 +488,14 @@ uint8_t decrypt_magma_ctr(
     DeleteCriticalSection(&lock);
     close_files(input_file, output_file);
 
-    if (error != 0 or result != 0) {
-        return 9; //ошибка при расшифровании
+    if (error == 1) {
+        return 9; // Ошибка при расшифровании (обработка файлов)
     }
-
+    if (error == 2) {
+        return 10; // Ошибка при расшифровании (выделение памяти)
+    }
+    if (result == 1) {
+        return 11; // Ошибка при расшифровании (запись последних байт)
+    }
     return 0;
 }
