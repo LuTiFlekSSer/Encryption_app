@@ -18,6 +18,7 @@ from src.utils.config import Config
 from src.utils.utils import find_mega_parent
 
 
+# todo при открытии истории размер elided текста слишком маленький
 class HistoryCard(CardWidget):
     def __init__(self, parent=None):
         super().__init__(parent=parent)
@@ -37,7 +38,6 @@ class HistoryCard(CardWidget):
         self._path: str = ''
         self._status_description: str = ''
         self._mode: str = ''
-        self._is_resizing: bool = False
 
         self.__init_widgets()
 
@@ -138,11 +138,6 @@ class History(SimpleCardWidget):
         self._pager.currentIndexChanged.connect(lambda index: self._history_list.set_page(index))
         self._db.events.sig_add_history_record.connect(self._history_list.add_item)
         self._db.events.sig_strip_last_history_records.connect(self._history_list.strip_last_items)
-
-    def reset_page(self):
-        self._history_list.set_page(0)
-        self._pager.setPageNumber(self._history_list.get_total_pages())
-        self._pager.setVisibleNumber(min(self._history_list.get_total_pages(), 50))
 
     def clear(self):
         message_box = MessageBox(title=self._locales.get_string('clear_history_description'),

@@ -155,6 +155,10 @@
     "no": {
       "ru": "Нет",
       "en": "No"
+    },
+    "encrypt_title": {
+      "ru": "Шифрование",
+      "en": "Encryption"
     }
   }
 }

@@ -1,7 +1,7 @@
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QColor
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QPushButton
-from qfluentwidgets import LargeTitleLabel, NavigationPushButton
+from PyQt5.QtWidgets import QWidget, QVBoxLayout
+from qfluentwidgets import LargeTitleLabel
 
 from src.frontend.history_window.history import History
 from src.frontend.history_window.history_buttons import HistoryButtonsCard
@@ -36,7 +36,7 @@ class HistoryWindow(QWidget):
         self._vl_view_layout.setAlignment(Qt.AlignTop)
 
         self._vl_view_layout.addWidget(self._l_title)
-        self._vl_view_layout.addSpacing(16)
+        self._vl_view_layout.addSpacing(32)
 
         self._vl_view_layout.addWidget(self._buttons_card)
         self._vl_view_layout.addSpacing(4)
@@ -48,6 +48,3 @@ class HistoryWindow(QWidget):
 
     def _clear_history(self):
         self._history.clear()
-
-    def on_click(self):
-        self._history.reset_page()

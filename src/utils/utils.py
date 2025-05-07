@@ -2,7 +2,15 @@ import os
 import sys
 from os import PathLike
 
-from PyQt5.QtWidgets import QWidget
+from PyQt5.QtCore import QFileInfo
+from PyQt5.QtGui import QIcon
+from PyQt5.QtWidgets import QWidget, QFileIconProvider
+
+
+def get_file_icon(file_path: str) -> QIcon:
+    file_info = QFileInfo(file_path)
+    provider = QFileIconProvider()
+    return provider.icon(file_info)
 
 
 def resource_path(relative_path: str | PathLike[str]) -> str:

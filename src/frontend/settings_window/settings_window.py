@@ -34,7 +34,7 @@ class SettingsWindow(ScrollArea):
         self._l_title.setTextColor(QColor(Config.GRAY_COLOR_900), QColor(Config.GRAY_COLOR_50))
 
         self._vl_view_layout.setContentsMargins(28, 12, 28, 28)
-        self._vl_view_layout.setSpacing(16)
+        self._vl_view_layout.setSpacing(0)
         self._vl_view_layout.setAlignment(Qt.AlignTop)
 
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
@@ -42,8 +42,13 @@ class SettingsWindow(ScrollArea):
         self.setWidgetResizable(True)
 
         self._vl_view_layout.addWidget(self._l_title)
+        self._vl_view_layout.addSpacing(32)
+
         self._vl_view_layout.addWidget(self._encryption_settings)
+        self._vl_view_layout.addSpacing(16)
+
         self._vl_view_layout.addWidget(self._app_settings)
+        self._vl_view_layout.addSpacing(16)
 
     def _connect_widget_actions(self):
         pass
