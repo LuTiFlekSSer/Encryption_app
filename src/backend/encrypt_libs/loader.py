@@ -1,6 +1,7 @@
 import ctypes
 import hashlib
 import os
+import time
 from collections import defaultdict
 from concurrent.futures import Future
 from concurrent.futures.thread import ThreadPoolExecutor
@@ -12,12 +13,15 @@ from PyQt5.QtCore import QObject, pyqtSignal
 from src.backend.db.data_base import DataBase
 from src.backend.encrypt_libs.encrypt_lib import EncryptLib, LibStatus, EncryptResult
 from src.backend.encrypt_libs.errors import AddTaskError
+from src.frontend.sub_windows.file_adder_window.file_adder_window import Status
 from src.utils.config import Config
 from src.utils.singleton import Singleton
 
 
 class Events(QObject):
     sig_update_progress: pyqtSignal = pyqtSignal(str, int, int)
+    sig_update_status: pyqtSignal = pyqtSignal(str, Status)
+    sig_update: pyqtSignal = pyqtSignal()
 
 
 class TTask:
@@ -52,10 +56,12 @@ class Loader(metaclass=Singleton):
         self._running: defaultdict[str, int] = defaultdict(int)
         self._output_files: set[str] = set()
         self._queue: set[TTask] = set()
+        self._last_update: float = 0
 
         for file_name in os.listdir(path_to_libs):
             if file_name.endswith('.dll'):
                 cur_lib = EncryptLib(path_to_libs + file_name)
+
                 match cur_lib.load_status:
                     case LibStatus.LOAD_LIB_ERROR | LibStatus.GET_INFO_ERROR:
                         pass
@@ -72,7 +78,7 @@ class Loader(metaclass=Singleton):
                     file_out_path in self._output_files or \
                     file_out_path in self._running:
                 raise AddTaskError
-
+        # todo если что-то запущено, то нужно поставить флажок в процессе
         cur = ctypes.c_uint64(0)
         total = ctypes.c_uint64(0)
         key = bytearray(hashlib.sha512(hash_password.encode()).digest())  # todo sha512 -> PBKDF2
@@ -141,6 +147,10 @@ class Loader(metaclass=Singleton):
 
     def exec(self):
         with self._lock:
+            if self._last_update + Config.UPDATE_INTERVAL > (lt := time.time()):
+                self.events.sig_update.emit()
+                self._last_update = lt
+
             to_remove = set()
 
             for task in self._queue:
@@ -151,6 +161,9 @@ class Loader(metaclass=Singleton):
                     task.last_progress = last_progres
 
                 if task.future.done():
+                    self.events.sig_update_status.emit(task.output_path,
+                                                       Status.COMPLETED if task.future.result() == EncryptResult.SUCCESS
+                                                       else Status.FAILED)
                     to_remove.add(task)
 
                     self._running[task.input_path] -= 1

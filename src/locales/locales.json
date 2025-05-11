@@ -171,6 +171,46 @@
     "lib_test_error": {
       "ru": "Библиотека не прошла тесты",
       "en": "Library did not pass the test"
+    },
+    "B": {
+      "ru": "Б",
+      "en": "B"
+    },
+    "KB": {
+      "ru": "КБ",
+      "en": "KB"
+    },
+    "MB": {
+      "ru": "МБ",
+      "en": "MB"
+    },
+    "GB": {
+      "ru": "ГБ",
+      "en": "GB"
+    },
+    "TB": {
+      "ru": "ТБ",
+      "en": "TB"
+    },
+    "PB": {
+      "ru": "ПБ",
+      "en": "PB"
+    },
+    "waiting": {
+      "ru": "Ожидание",
+      "en": "Waiting"
+    },
+    "in_progress": {
+      "ru": "В процессе",
+      "en": "In progress"
+    },
+    "completed": {
+      "ru": "Завершено",
+      "en": "Completed"
+    },
+    "failed": {
+      "ru": "Ошибка",
+      "en": "Failed"
     }
   }
 }

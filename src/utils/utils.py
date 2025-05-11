@@ -7,6 +7,20 @@ from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QWidget, QFileIconProvider
 
 
+def get_normalized_size(locales, size: int) -> str:
+    for unit in [locales.get_string('B'),
+                 locales.get_string('KB'),
+                 locales.get_string('MB'),
+                 locales.get_string('GB'),
+                 locales.get_string('TB')]:
+        if size < 1024:
+            return f'{size:.2f} {unit}'
+
+        size /= 1024
+
+    return f'{size:.2f} {locales.get_string('PB')}'
+
+
 def get_file_icon(file_path: str) -> QIcon:
     file_info = QFileInfo(file_path)
     provider = QFileIconProvider()

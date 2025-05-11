@@ -31,3 +31,4 @@ class Config(metaclass=Singleton):
     GRAY_COLOR_900 = '#393939'
 
     THREAD_SLEEP = 0.01
+    UPDATE_INTERVAL = 0.1

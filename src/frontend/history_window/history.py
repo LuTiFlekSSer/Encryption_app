@@ -1,3 +1,4 @@
+import random
 from datetime import datetime
 from pathlib import Path
 
@@ -18,7 +19,6 @@ from src.utils.config import Config
 from src.utils.utils import find_mega_parent
 
 
-# todo при открытии истории размер elided текста слишком маленький
 class HistoryCard(CardWidget):
     def __init__(self, parent=None):
         super().__init__(parent=parent)
@@ -87,6 +87,10 @@ class HistoryCard(CardWidget):
         self._l_time.setText(datetime.fromtimestamp(data.time).strftime('%Y-%m-%d %H:%M'))
 
     def resizeEvent(self, a0):
+        self._update_text()
+        super().resizeEvent(a0)
+
+    def _update_text(self):
         max_width = int(
             (self.width() - self._status_icon.width() - self._op_icon.width() - self._l_time.width() - 112) / 3)
         self._l_name.setMaximumWidth(max_width)
@@ -99,12 +103,10 @@ class HistoryCard(CardWidget):
         self._set_elided_text(self._l_status, self._status_description)
         self._set_elided_text(self._l_mode, self._mode)
 
-        super().resizeEvent(a0)
-
     @staticmethod
     def _set_elided_text(label: QLabel, text: str):
         metrics = QFontMetrics(label.font())
-        elided = metrics.elidedText(text, Qt.ElideMiddle, label.width())
+        elided = metrics.elidedText(text, Qt.ElideMiddle, label.maximumWidth())
         label.setText(elided)
 
 
@@ -121,7 +123,7 @@ class History(SimpleCardWidget):
 
         self.__init_widgets()
 
-        self._history_list.set_items(self._db.get_history())
+        self._history_list.set_items({record.idx: record for record in self._db.get_history()})
 
     def __init_widgets(self):
         self._vl_view_layout.setContentsMargins(8, 8, 8, 8)

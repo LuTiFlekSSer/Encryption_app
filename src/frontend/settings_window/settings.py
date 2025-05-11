@@ -82,7 +82,7 @@ class SpinBoxSettingCard(SettingCard):
         self.hBoxLayout.addWidget(self.spin_box, 0, Qt.AlignRight)
         self.hBoxLayout.addSpacing(16)
 
-        self.spin_box.valueChanged.connect(self.setValue)
+        self.spin_box.editingFinished.connect(lambda sp=self.spin_box: self.setValue(sp.value()))
         self._locales: Locales = Locales()
         self._hmi: QObject = find_mega_parent(self)
 

@@ -146,7 +146,7 @@ class DataBase(metaclass=Singleton):
         with self._lock:
             curr = self._connection.cursor()
 
-            curr.execute('''SELECT path, status, status_description, mode, operation, time
+            curr.execute('''SELECT idx, path, status, status_description, mode, operation, time
                             FROM history
                             ORDER BY time DESC''')
             history = curr.fetchall()

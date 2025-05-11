@@ -14,7 +14,7 @@ uint8_t encrypt_magma_ecb(
     uint64_t *total_steps
 );
 
-uint8_t decrypt_magma_ecbc(
+uint8_t decrypt_magma_ecb(
     const WCHAR *file_in_path,
     const WCHAR *disk_out_name,
     const WCHAR *file_out_path,

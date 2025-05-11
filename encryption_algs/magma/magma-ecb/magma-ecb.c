@@ -325,7 +325,7 @@ uint8_t remove_last_bytes(file_block_info const *block_info) {
     return 0;
 }
 
-uint8_t decrypt_magma_ecbc(
+uint8_t decrypt_magma_ecb(
     const WCHAR *file_in_path,
     const WCHAR *disk_out_name,
     const WCHAR *file_out_path,
