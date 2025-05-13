@@ -12,6 +12,7 @@ class Status(Enum):
 
 
 TEncryptData = TypedDict('TEncryptData', {
+    'uid': str,
     'input_file': str,
     'output_file': str,
     'mode': str,

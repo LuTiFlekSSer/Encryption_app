@@ -1,6 +1,10 @@
+import ctypes
 from os import getenv
+from typing import Literal, Callable
 
 from src.utils.singleton import Singleton
+
+TExtraFunc = Literal['read_cipher_from_file']
 
 
 class Config(metaclass=Singleton):
@@ -18,6 +22,8 @@ class Config(metaclass=Singleton):
     TEST_FILE_ENCRYPT = 'test_encrypt.txt'
     TEST_FILE_DECRYPT = 'test_decrypt.txt'
     TEST_FILE_SIZE = 1024 * 1024 * 10
+    EXTRA_FUNCS: dict[TExtraFunc, Callable] = {'read_cipher_from_file': ctypes.CFUNCTYPE(
+        ctypes.c_uint8, ctypes.c_wchar_p, ctypes.c_char_p)}
 
     GRAY_COLOR_50 = '#F3F3F3'
     GRAY_COLOR_100 = '#DDDDDD'

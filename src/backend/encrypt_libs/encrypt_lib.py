@@ -154,33 +154,3 @@ class EncryptLib:
                                                 num_threads,
                                                 cur_progress,
                                                 total_progress))
-
-
-if __name__ == '__main__':  # todo emum для ошибок
-    os.environ['PATH'] = f'{os.path.abspath('../../../encryption_algs/libs/release/')}{os.pathsep}{os.environ['PATH']}'
-
-    aboba = EncryptLib('../../../encryption_algs/libs/release/libmagma-cbc.dll')
-    if aboba._load_status == LibStatus.SUCCESS:
-        print('sosal')
-        sosal = ctypes.c_uint64(0)
-        cur = ctypes.byref(ctypes.c_uint64(0))
-        total = ctypes.byref(sosal)
-        aboba.encrypt('../../../input.txt',
-                      'C:',
-                      '../../../input.txt',
-                      bytearray(b'This is a 32-byte long bytearray!!')[:32],
-                      1,
-                      cur,
-                      total)
-
-        aboba.decrypt('../../../input.txt',
-                      'C:',
-                      '../../../input.txt',
-                      bytearray(b'This is a 32-byte long bytearray!!')[:32],
-                      1,
-                      cur,
-                      total)
-
-        print(sosal.value)
-    else:
-        print(aboba._load_status)

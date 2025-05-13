@@ -4,12 +4,14 @@
 #include <stdint.h>
 #include <windows.h>
 
-#define CIPHER_TYPES 3
+#define CIPHER_TYPES 2
 
 typedef enum {
     KYZNECHIK = 0,
     MAGMA = 1,
 } CIPHER_TYPE;
+
+char *cipher_type[CIPHER_TYPES] = {"kyznechik", "magma"};
 
 #define CIPHER_MODES 4
 
@@ -19,6 +21,8 @@ typedef enum {
     CTR = 2,
     XTS = 3
 } CIPHER_MODE;
+
+char *cipher_mode[CIPHER_MODES] = {"ecb", "cbc", "ctr", "xts"};
 
 typedef enum {
     ENCRYPT = 0,
@@ -71,8 +75,7 @@ func_result write_metadata_to_file(
 
 uint8_t read_cipher_from_file(
     const WCHAR *file_name,
-    uint8_t *cipher_type,
-    uint8_t *cipher_mode
+    char *cipher_info
 );
 
 void open_files(const WCHAR *file_in_path, const WCHAR *file_out_path, HANDLE *input_file, HANDLE *output_file);

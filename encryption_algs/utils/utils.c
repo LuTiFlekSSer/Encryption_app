@@ -2,6 +2,7 @@
 
 #include <windows.h>
 #include <iso646.h>
+#include <stdio.h>
 
 func_result get_disk_free_space(const WCHAR *disk_name) {
     ULARGE_INTEGER free_bytes_available;
@@ -129,8 +130,7 @@ func_result write_metadata_to_file(
 
 uint8_t read_cipher_from_file(
     const WCHAR *file_name,
-    uint8_t *cipher_type,
-    uint8_t *cipher_mode
+    char *cipher_info
 ) {
     HANDLE file;
     open_files(file_name, file_name, &file, &file);
@@ -159,9 +159,7 @@ uint8_t read_cipher_from_file(
     if (cipher[0] >= CIPHER_TYPES or cipher[1] >= CIPHER_MODES) {
         return 2; //Файл не зашифрован
     }
-    *cipher_type = cipher[0];
-    *cipher_mode = cipher[1];
-
+    sprintf(cipher_info, "%s-%s", cipher_type[cipher[0]], cipher_mode[cipher[1]]);
     return 0;
 }
 

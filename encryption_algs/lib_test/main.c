@@ -11,8 +11,8 @@ int main() {
                       206, 25, 232, 158, 188, 64, 154, 12, 120, 208
                   },
                   magma_key[] = {
-                      255, 254, 253, 252, 251, 250, 249, 248, 247, 246, 245, 244, 243, 242, 241, 240, 0, 17, 34, 51, 68,
-                      85, 102, 119, 136, 153, 170, 187, 204, 221, 238, 255
+                      251, 157, 155, 99, 20, 27, 45, 16, 33, 120, 134, 41, 229, 193, 10, 19, 175, 80, 210, 115, 223, 31,
+                      56, 111, 187, 8, 18, 118, 137, 124, 120, 54
                   };
 
 
@@ -41,24 +41,24 @@ int main() {
     // printf("DEC %lf MB/s", 8 * iters / seconds / 1024 / 1024);
 
     uint64_t curr = 0, total = 0;
-
-    int result = encrypt_magma_cbc(
-        L"../../../input.txt",
-        L"C:\\",
-        L"../../../input.txt",
-        magma_key,
-        1,
-        &curr,
-        &total
-    );
+    int result = 0;
+    // result = encrypt_magma_cbc(
+    //     L"../../../input.txt",
+    //     L"C:\\",
+    //     L"../../../input.txt",
+    //     magma_key,
+    //     1,
+    //     &curr,
+    //     &total
+    // );
 
     printf("%d\n", result);
     printf("%llu %llu\n", curr, total);
 
     result = decrypt_magma_cbc(
-        L"../../../middle.txt",
+        L"../../../input.txt",
         L"C:\\",
-        L"../../../output.txt",
+        L"../../../input.txt",
         magma_key,
         1,
         &curr,

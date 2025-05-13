@@ -211,6 +211,14 @@
     "failed": {
       "ru": "Ошибка",
       "en": "Failed"
+    },
+    "signature_error": {
+      "ru": "Файл не зашифрован",
+      "en": "File not encrypted"
+    },
+    "work_error": {
+      "ru": "Ошибка при работе с файлом",
+      "en": "Error working with file"
     }
   }
 }

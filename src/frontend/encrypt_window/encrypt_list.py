@@ -2,20 +2,22 @@ import os
 from pathlib import Path
 from threading import Lock
 
-from PyQt5.QtCore import Qt, pyqtSignal, QObject
+from PyQt5.QtCore import Qt, pyqtSignal, QObject, QTimer
 from PyQt5.QtGui import QFontMetrics, QColor
-from PyQt5.QtWidgets import QSizePolicy, QVBoxLayout, QLabel, QHBoxLayout
+from PyQt5.QtWidgets import QSizePolicy, QVBoxLayout, QLabel, QHBoxLayout, QWidget
 from qfluentwidgets import CardWidget, SimpleCardWidget, PipsPager, PipsScrollButtonDisplayMode, IconWidget, \
-    StrongBodyLabel, CaptionLabel, ProgressBar, ToolButton, FluentIcon
+    StrongBodyLabel, CaptionLabel, ProgressBar, ToolButton, FluentIcon, InfoBar, InfoBarPosition
 
 from src.backend.db.db_records import OperationType
+from src.backend.encrypt_libs.encrypt_lib import EncryptResult
+from src.backend.encrypt_libs.errors import SignatureError
 from src.backend.encrypt_libs.loader import Loader
 from src.frontend.icons.icons import LockIcons
 from src.frontend.paged_list_view import PagedListView
 from src.frontend.sub_windows.file_adder_window.file_adder_window import TEncryptData, Status
 from src.locales.locales import Locales
 from src.utils.config import Config
-from src.utils.utils import get_file_icon, get_normalized_size
+from src.utils.utils import get_file_icon, get_normalized_size, find_mega_parent
 
 locales = Locales()
 map_status_to_value: dict[Status, str] = {
@@ -25,6 +27,10 @@ map_status_to_value: dict[Status, str] = {
     Status.FAILED: locales.get_string('failed'),
 }
 
+
+# todo info bar при нажатии на карточку с подробным описанием ошибки или открыть результат
+# todo кнопка удалить изначально неактивная
+# todo оставшееся время
 
 class Events(QObject):
     sig_delete: pyqtSignal = pyqtSignal(str)
@@ -56,6 +62,7 @@ class EncryptCard(CardWidget):
 
         self._input_path: str = ''
         self._output_path: str = ''
+        self._uid: str = ''
 
     def __init_widgets(self):
         self._h_layout.setContentsMargins(16, 16, 16, 16)
@@ -70,7 +77,7 @@ class EncryptCard(CardWidget):
         self._btn_delete.setFixedSize(32, 32)
         icon = FluentIcon.DELETE.colored(QColor(Config.GRAY_COLOR_900), QColor(Config.GRAY_COLOR_50))
         self._btn_delete.setIcon(icon)
-        self._btn_delete.clicked.connect(lambda: events.sig_delete.emit(self._output_path))
+        self._btn_delete.clicked.connect(lambda: events.sig_delete.emit(self._uid))
 
         self._pb_progress.setRange(0, 100)
 
@@ -97,6 +104,7 @@ class EncryptCard(CardWidget):
     def set_data(self, data: TEncryptData):
         self._input_path = data['input_file']
         self._output_path = data['output_file']
+        self._uid = data['uid']
 
         file_icon = get_file_icon(data['input_file'])
         self._file_icon.setIcon(file_icon)
@@ -107,7 +115,18 @@ class EncryptCard(CardWidget):
         icon = icon.colored(QColor(Config.GRAY_COLOR_900), QColor(Config.GRAY_COLOR_50))
         self._op_icon.setIcon(icon)
 
-        self._pb_progress.setValue(data['current'] // data['total'] * 100)
+        match data['status']:
+            case Status.FAILED:
+                self._pb_progress.setValue(100)
+                self._pb_progress.error()
+            case Status.WAITING:
+                if data['current'] >= 0:
+                    self._pb_progress.resume()
+                    data['status'] = Status.IN_PROGRESS
+                    self._pb_progress.setValue(int(data['current'] / data['total'] * 100))
+            case _:
+                self._pb_progress.resume()
+                self._pb_progress.setValue(int(data['current'] / data['total'] * 100))
 
         self._l_status.setText(map_status_to_value[data['status']])
 
@@ -145,12 +164,27 @@ class EncryptList(SimpleCardWidget):
         self._vl_view_layout: QVBoxLayout = QVBoxLayout(self)
         self._encrypt_list: PagedListView = PagedListView(EncryptCard, parent=self)
         self._pager: PipsPager = PipsPager(self)
+        self._hmi: QWidget = find_mega_parent(parent)
 
         self._loader: Loader = Loader()
         self._lock: Lock = Lock()
 
         self.__init_widgets()
         self._connect_widget_actions()
+
+        QTimer.singleShot(5000, lambda: self._add_task(
+            {
+                'uid': 'u8i92wr43uy9terwuhigfsdrrgeujihsgerfdkbjdh',
+                'input_file': os.path.abspath('input.txt'),
+                'output_file': os.path.abspath('input.txt'),
+                'mode': 'kyznechik-cbc',
+                'operation': OperationType.ENCRYPT,
+                'total': 1,
+                'current': 0,
+                'status': Status.WAITING,
+                'hash_password': 'oral_cumshot',
+            }
+        ))
 
         aboba = {'input_file': os.path.abspath('input.txt'),
                  'output_file': 'output.txt',
@@ -159,7 +193,8 @@ class EncryptList(SimpleCardWidget):
                  'total': 100,
                  'current': 50,
                  'status': Status.IN_PROGRESS,
-                 'hash_password': 'password123'}
+                 'hash_password': 'password123',
+                 'uid': "1234123"}
 
         aboba1 = {'input_file': os.path.abspath('input.jpeg'),
                   'output_file': 'output.txtt',
@@ -168,7 +203,8 @@ class EncryptList(SimpleCardWidget):
                   'total': 100,
                   'current': 50,
                   'status': Status.IN_PROGRESS,
-                  'hash_password': 'password123'}
+                  'hash_password': 'password123',
+                  'uid': "123123"}
 
         aboba2 = {'input_file': os.path.abspath('input.bat'),
                   'output_file': 'output.txttt',
@@ -177,26 +213,33 @@ class EncryptList(SimpleCardWidget):
                   'total': 100,
                   'current': 50,
                   'status': Status.IN_PROGRESS,
-                  'hash_password': 'password123'}
+                  'hash_password': 'password123',
+                  'uid': "1231523"}
 
-        self._encrypt_list.add_item(aboba['output_file'], aboba)
-        self._encrypt_list.add_item(aboba1['output_file'], aboba1)
-        self._encrypt_list.add_item(aboba2['output_file'], aboba2)
+        self._encrypt_list.add_item(aboba['uid'], aboba)
+        self._encrypt_list.add_item(aboba1['uid'], aboba1)
+        self._encrypt_list.add_item(aboba2['uid'], aboba2)
 
     def _on_delete(self, output_path: str):
         self._encrypt_list.remove_item(output_path)
 
     def _connect_widget_actions(self):
         events.sig_delete.connect(self._on_delete)
+
         self._loader.events.sig_update_progress.connect(self._on_update_progress)
         self._loader.events.sig_update_status.connect(self._on_update_status)
+        self._loader.events.sig_update.connect(self._on_update)
+
+    def _on_update(self):
+        self._encrypt_list.update_view()
 
     def _on_update_progress(self, key: str, current: int, total: int):
         self._encrypt_list.items_dict[key]['current'] = current
         self._encrypt_list.items_dict[key]['total'] = total
 
-    def _on_update_status(self, key: str, status: Status):
-        self._encrypt_list.items_dict[key]['status'] = status
+    def _on_update_status(self, key: str, status: EncryptResult):
+        self._encrypt_list.items_dict[key][
+            'status'] = Status.COMPLETED if status == EncryptResult.SUCCESS else Status.FAILED
 
     def __init_widgets(self):
         self._pager.setNextButtonDisplayMode(PipsScrollButtonDisplayMode.ALWAYS)
@@ -218,20 +261,54 @@ class EncryptList(SimpleCardWidget):
         self._pager.setCurrentIndex(current_page)
 
     def _add_task(self, data: TEncryptData):
-        self._encrypt_list.add_item(data['output_file'], data)
-        match data['operation']:
-            case OperationType.ENCRYPT:
-                self._loader.encrypt(
-                    mode=data['mode'],
-                    file_in_path=data['input_file'],
-                    file_out_path=data['output_file'],
-                    hash_password=data['hash_password']
-                )
+        try:
+            match data['operation']:
+                case OperationType.ENCRYPT:
+                    self._loader.check_encrypt_file(data['input_file'], data['output_file'])
+                    self._encrypt_list.add_item(data['uid'], data)
+                    self._loader.encrypt(
+                        mode=data['mode'],
+                        file_in_path=data['input_file'],
+                        file_out_path=data['output_file'],
+                        hash_password=data['hash_password'],
+                        uid=data['uid']
+                    )
 
-            case OperationType.DECRYPT:
-                self._loader.decrypt(
-                    mode=data['mode'],
-                    file_in_path=data['input_file'],
-                    file_out_path=data['output_file'],
-                    hash_password=data['hash_password']
-                )
+                case OperationType.DECRYPT:
+                    mode = self._loader.check_decrypt_file(data['input_file'], data['output_file'])
+                    data['mode'] = mode
+
+                    self._encrypt_list.add_item(data['uid'], data)
+                    self._loader.decrypt(
+                        mode=data['mode'],
+                        file_in_path=data['input_file'],
+                        file_out_path=data['output_file'],
+                        hash_password=data['hash_password'],
+                        uid=data['uid']
+                    )
+
+        except SignatureError:
+            InfoBar.error(
+                title=self._locales.get_string('error'),
+                content=self._locales.get_string('signature_error'),
+                duration=-1,
+                parent=self._hmi,
+                position=InfoBarPosition.BOTTOM_RIGHT
+            )
+
+            data['status'] = Status.FAILED
+            self._encrypt_list.add_item(data['uid'], data)
+
+        except Exception as e:
+            print(e)
+            InfoBar.error(
+                title=self._locales.get_string('error'),
+                content=self._locales.get_string('work_error'),
+                duration=-1,
+                parent=self._hmi,
+                position=InfoBarPosition.BOTTOM_RIGHT
+            )
+
+            data['status'] = Status.FAILED
+            self._encrypt_list.add_item(data['uid'], data)
+# todo при расшифровке сделать сообщение, что такого режима нет
