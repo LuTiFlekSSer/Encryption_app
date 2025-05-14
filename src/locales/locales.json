@@ -219,6 +219,10 @@
     "work_error": {
       "ru": "Ошибка при работе с файлом",
       "en": "Error working with file"
+    },
+    "file_not_found": {
+      "ru": "Выходной файл не найден",
+      "en": "Output file not found"
     }
   }
 }

@@ -172,53 +172,19 @@ class EncryptList(SimpleCardWidget):
         self.__init_widgets()
         self._connect_widget_actions()
 
-        QTimer.singleShot(5000, lambda: self._add_task(
-            {
-                'uid': 'u8i92wr43uy9terwuhigfsdrrgeujihsgerfdkbjdh',
-                'input_file': os.path.abspath('input.txt'),
-                'output_file': os.path.abspath('input.txt'),
-                'mode': 'kyznechik-cbc',
-                'operation': OperationType.ENCRYPT,
-                'total': 1,
-                'current': 0,
-                'status': Status.WAITING,
-                'hash_password': 'oral_cumshot',
-            }
-        ))
-
-        aboba = {'input_file': os.path.abspath('input.txt'),
-                 'output_file': 'output.txt',
-                 'mode': 'AES',
-                 'operation': OperationType.ENCRYPT,
-                 'total': 100,
-                 'current': 50,
-                 'status': Status.IN_PROGRESS,
-                 'hash_password': 'password123',
-                 'uid': "1234123"}
-
-        aboba1 = {'input_file': os.path.abspath('input.jpeg'),
-                  'output_file': 'output.txtt',
-                  'mode': 'AES',
-                  'operation': OperationType.ENCRYPT,
-                  'total': 100,
-                  'current': 50,
-                  'status': Status.IN_PROGRESS,
-                  'hash_password': 'password123',
-                  'uid': "123123"}
-
-        aboba2 = {'input_file': os.path.abspath('input.bat'),
-                  'output_file': 'output.txttt',
-                  'mode': 'AES',
-                  'operation': OperationType.ENCRYPT,
-                  'total': 100,
-                  'current': 50,
-                  'status': Status.IN_PROGRESS,
-                  'hash_password': 'password123',
-                  'uid': "1231523"}
-
-        self._encrypt_list.add_item(aboba['uid'], aboba)
-        self._encrypt_list.add_item(aboba1['uid'], aboba1)
-        self._encrypt_list.add_item(aboba2['uid'], aboba2)
+        # QTimer.singleShot(5000, lambda: self._add_task(
+        #     {
+        #         'uid': 'u8i92wr43uy9terwuhigfsdrrgeujihsgerfdkbjdh',
+        #         'input_file': os.path.abspath('input.txt'),
+        #         'output_file': os.path.abspath('input.txt'),
+        #         'mode': 'kyznechik-cbc',
+        #         'operation': OperationType.ENCRYPT,
+        #         'total': 1,
+        #         'current': 0,
+        #         'status': Status.WAITING,
+        #         'hash_password': 'oral_cumshot',
+        #     }
+        # ))
 
     def _on_delete(self, output_path: str):
         self._encrypt_list.remove_item(output_path)
@@ -312,3 +278,20 @@ class EncryptList(SimpleCardWidget):
             data['status'] = Status.FAILED
             self._encrypt_list.add_item(data['uid'], data)
 # todo при расшифровке сделать сообщение, что такого режима нет
+
+#         view = TeachingTipView(
+#             title='test',
+#             content='test123',
+#             isClosable=True,
+#         )
+#
+#         tip = TeachingTip.make(
+#             target=self._command_bar,
+#             view=view,
+#             duration=-1,
+#             parent=self
+#         )
+#
+#         view.closed.connect(tip.close)
+#
+#         if view.isHidden()

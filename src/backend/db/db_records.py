@@ -10,7 +10,8 @@ class OperationType(Enum):
 class HistoryRecord:
     def __init__(self):
         self.idx: int = 0
-        self.path: str = ''
+        self.input_path: str = ''
+        self.output_path: str = ''
         self.status: bool = False
         self.status_description: str = ''
         self.mode: str = ''
@@ -19,19 +20,21 @@ class HistoryRecord:
 
     def set_data(self,
                  idx: int,
-                 path: str,
+                 input_path: str,
+                 output_path: str,
                  status: bool,
                  status_description: str,
                  mode: str,
                  operation: bool,
                  time: float):
         self.idx = idx
-        self.path = path
+        self.input_path = input_path
+        self.output_path = output_path
         self.status = status
         self.status_description = status_description
         self.mode = mode
         self.operation = OperationType(operation)
         self.time = time
 
-    def get_data(self) -> Tuple[str, bool, str, str, bool, float]:
-        return self.path, self.status, self.status_description, self.mode, self.operation.value, self.time
+    def get_data(self) -> Tuple[str, str, bool, str, str, bool, float]:
+        return self.input_path, self.output_path, self.status, self.status_description, self.mode, self.operation.value, self.time

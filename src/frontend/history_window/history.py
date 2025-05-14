@@ -1,13 +1,13 @@
-import random
+import os.path
 from datetime import datetime
 from pathlib import Path
 
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QProcess
 from PyQt5.QtGui import QColor, QFontMetrics
-from PyQt5.QtWidgets import QSizePolicy, QHBoxLayout, QLabel
+from PyQt5.QtWidgets import QSizePolicy, QHBoxLayout, QLabel, QWidget
 from PyQt5.QtWidgets import QVBoxLayout
 from qfluentwidgets import SimpleCardWidget, PipsPager, PipsScrollButtonDisplayMode, InfoBarIcon, \
-    IconWidget, StrongBodyLabel, CaptionLabel, CardWidget
+    IconWidget, StrongBodyLabel, CaptionLabel, CardWidget, TeachingTipView, PopupTeachingTip
 
 from src.backend.db.data_base import DataBase
 from src.backend.db.db_records import HistoryRecord, OperationType
@@ -27,19 +27,59 @@ class HistoryCard(CardWidget):
 
         self._h_layout: QHBoxLayout = QHBoxLayout(self)
         self._status_icon: IconWidget = IconWidget(self)
-        self._v_layout: QVBoxLayout = QVBoxLayout()
-        self._l_name: StrongBodyLabel = StrongBodyLabel(self)
-        self._l_path: CaptionLabel = CaptionLabel(self)
-        self._l_status: StrongBodyLabel = StrongBodyLabel(self)
+        self._w1: QWidget = QWidget(self)
+        self._v_layout_input: QVBoxLayout = QVBoxLayout(self._w1)
+        self._l_name_input: StrongBodyLabel = StrongBodyLabel(self)
+        self._l_path_input: CaptionLabel = CaptionLabel(self)
+        self._w2: QWidget = QWidget(self)
+        self._v_layout_output: QVBoxLayout = QVBoxLayout(self._w2)
+        self._l_name_output: StrongBodyLabel = StrongBodyLabel(self)
+        self._l_path_output: CaptionLabel = CaptionLabel(self)
         self._l_mode: StrongBodyLabel = StrongBodyLabel(self)
         self._op_icon: IconWidget = IconWidget(self)
         self._l_time: StrongBodyLabel = StrongBodyLabel(self)
+        self._locales: Locales = Locales()
 
-        self._path: str = ''
+        self._input_path: str = ''
+        self._output_path: str = ''
         self._status_description: str = ''
         self._mode: str = ''
+        self._status: bool = False
 
         self.__init_widgets()
+
+    def _show_tool_tip(self,
+                       title: str,
+                       content: str,
+                       icon: InfoBarIcon
+                       ):
+
+        view = TeachingTipView(
+            title=title,
+            content=content,
+            icon=icon,
+            parent=self,
+        )
+
+        tip = PopupTeachingTip.make(
+            view=view,
+            target=self,
+            duration=-1,
+            parent=self
+        )
+
+        view.closed.connect(tip.close)
+
+    def _on_click(self):
+        if self._status:
+            if os.path.exists(self._input_path):
+                QProcess.startDetached('explorer', [f'/select,{os.path.normpath(self._input_path)}'])
+            else:
+                self._show_tool_tip(
+                    title=self._locales.get_string('error'),
+                    content=self._locales.get_string('file_not_found'),
+                    icon=InfoBarIcon.ERROR
+                )
 
     def __init_widgets(self):
         self._status_icon.setFixedSize(32, 32)
@@ -47,37 +87,52 @@ class HistoryCard(CardWidget):
 
         self._h_layout.setContentsMargins(16, 16, 16, 16)
         self._h_layout.setSpacing(16)
-        self._h_layout.setAlignment(Qt.AlignVCenter)
+        self._h_layout.setAlignment(Qt.AlignCenter)
 
-        self._v_layout.setContentsMargins(0, 0, 0, 0)
-        self._v_layout.setSpacing(0)
-        self._v_layout.setAlignment(Qt.AlignTop)
+        self._v_layout_input.setContentsMargins(0, 0, 0, 0)
+        self._v_layout_input.setSpacing(0)
+        self._v_layout_input.setAlignment(Qt.AlignTop)
 
-        self._l_name.setTextColor(QColor(Config.GRAY_COLOR_900), QColor(Config.GRAY_COLOR_50))
-        self._l_path.setTextColor(QColor(Config.GRAY_COLOR_900), QColor(Config.GRAY_COLOR_50))
-        self._l_status.setTextColor(QColor(Config.GRAY_COLOR_900), QColor(Config.GRAY_COLOR_50))
+        self._v_layout_output.setContentsMargins(0, 0, 0, 0)
+        self._v_layout_output.setSpacing(0)
+        self._v_layout_output.setAlignment(Qt.AlignTop)
+
+        self._l_name_input.setTextColor(QColor(Config.GRAY_COLOR_900), QColor(Config.GRAY_COLOR_50))
+        self._l_path_input.setTextColor(QColor(Config.GRAY_COLOR_900), QColor(Config.GRAY_COLOR_50))
+        self._l_name_output.setTextColor(QColor(Config.GRAY_COLOR_900), QColor(Config.GRAY_COLOR_50))
+        self._l_path_output.setTextColor(QColor(Config.GRAY_COLOR_900), QColor(Config.GRAY_COLOR_50))
         self._l_mode.setTextColor(QColor(Config.GRAY_COLOR_900), QColor(Config.GRAY_COLOR_50))
         self._l_time.setTextColor(QColor(Config.GRAY_COLOR_900), QColor(Config.GRAY_COLOR_50))
 
         self._h_layout.addWidget(self._status_icon)
-        self._h_layout.addLayout(self._v_layout, stretch=1)
-        self._v_layout.addWidget(self._l_name)
-        self._v_layout.addWidget(self._l_path)
-        self._h_layout.addWidget(self._l_status, stretch=1)
-        self._h_layout.addWidget(self._l_mode, stretch=1)
 
-        self._h_layout.addWidget(self._op_icon, alignment=Qt.AlignLeft)
-        self._h_layout.addWidget(self._l_time, alignment=Qt.AlignLeft)
+        self._h_layout.addWidget(self._w1, stretch=1)
+        self._v_layout_input.addWidget(self._l_name_input)
+        self._v_layout_input.addWidget(self._l_path_input)
+
+        self._h_layout.addWidget(self._w2, stretch=1)
+        self._v_layout_output.addWidget(self._l_name_output)
+        self._v_layout_output.addWidget(self._l_path_output)
+
+        self._h_layout.addWidget(self._l_mode, stretch=1)
+        self._h_layout.addWidget(self._op_icon, stretch=1)
+
+        self._h_layout.addWidget(self._l_time, alignment=Qt.AlignRight)
+
+        self.clicked.connect(self._on_click)
 
     def set_data(self, data: HistoryRecord):
-        self._path = data.path
-        self._status_description = data.status_description
+        self._input_path = data.input_path
+        self._output_path = data.output_path
+        self._status_description = data.status_description  # todo описание должно браться из locales по названию из базы
         self._mode = data.mode
+        self._status = data.status
 
         self._status_icon.setIcon(InfoBarIcon.SUCCESS if data.status else InfoBarIcon.ERROR)
-        self._set_elided_text(self._l_name, Path(self._path).name)
-        self._set_elided_text(self._l_path, self._path)
-        self._set_elided_text(self._l_status, self._status_description)
+        self._set_elided_text(self._l_name_input, Path(self._input_path).name)
+        self._set_elided_text(self._l_name_output, Path(self._output_path).name)
+        self._set_elided_text(self._l_path_input, self._input_path)
+        self._set_elided_text(self._l_path_output, self._output_path)
         self._set_elided_text(self._l_mode, self._mode)
 
         icon = LockIcons.LOCK if data.operation == OperationType.ENCRYPT else LockIcons.UNLOCK
@@ -92,15 +147,19 @@ class HistoryCard(CardWidget):
 
     def _update_text(self):
         max_width = int(
-            (self.width() - self._status_icon.width() - self._op_icon.width() - self._l_time.width() - 112) / 3)
-        self._l_name.setMaximumWidth(max_width)
-        self._l_path.setMaximumWidth(max_width)
-        self._l_status.setMaximumWidth(max_width)
+            (self.width() - self._status_icon.width() - self._l_time.width() - 7 * 16) / 4)
+        self._w1.setMaximumWidth(max_width)
+        self._w2.setMaximumWidth(max_width)
+        self._l_name_input.setMaximumWidth(max_width)
+        self._l_path_input.setMaximumWidth(max_width)
+        self._l_name_output.setMaximumWidth(max_width)
+        self._l_path_output.setMaximumWidth(max_width)
         self._l_mode.setMaximumWidth(max_width)
 
-        self._set_elided_text(self._l_name, Path(self._path).name)
-        self._set_elided_text(self._l_path, self._path)
-        self._set_elided_text(self._l_status, self._status_description)
+        self._set_elided_text(self._l_name_input, Path(self._input_path).name)
+        self._set_elided_text(self._l_path_input, self._input_path)
+        self._set_elided_text(self._l_name_output, Path(self._output_path).name)
+        self._set_elided_text(self._l_path_output, self._output_path)
         self._set_elided_text(self._l_mode, self._mode)
 
     @staticmethod

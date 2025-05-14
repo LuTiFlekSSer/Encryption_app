@@ -57,7 +57,8 @@ class DataBase(metaclass=Singleton):
         curr.execute(f'''
             CREATE TABLE IF NOT EXISTS history (
                 'idx' INTEGER PRIMARY KEY ASC,
-                'path' TEXT NOT NULL,
+                'input_path' TEXT NOT NULL,
+                'output_path' TEXT NOT NULL,
                 'status' BOOLEAN NOT NULL,
                 'status_description' TEXT NOT NULL,
                 'mode' TEXT NOT NULL,
@@ -135,8 +136,9 @@ class DataBase(metaclass=Singleton):
         with self._lock:
             curr = self._connection.cursor()
 
-            curr.execute('''INSERT INTO history (path, status, status_description, mode, operation, time)
-                            VALUES (?, ?, ?, ?, ?, ?)''', record.get_data())
+            curr.execute(
+                '''INSERT INTO history (input_path, output_path, status, status_description, mode, operation, time)
+                   VALUES (?, ?, ?, ?, ?, ?, ?)''', record.get_data())
             self._connection.commit()
 
             self.events.sig_add_history_record.emit(record)
@@ -146,7 +148,7 @@ class DataBase(metaclass=Singleton):
         with self._lock:
             curr = self._connection.cursor()
 
-            curr.execute('''SELECT idx, path, status, status_description, mode, operation, time
+            curr.execute('''SELECT idx, input_path, output_path, status, status_description, mode, operation, time
                             FROM history
                             ORDER BY time DESC''')
             history = curr.fetchall()
