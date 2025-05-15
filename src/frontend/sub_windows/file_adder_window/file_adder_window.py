@@ -21,4 +21,5 @@ TEncryptData = TypedDict('TEncryptData', {
     'current': int,
     'status': Status,
     'hash_password': str,
+    'file_size': str
 })

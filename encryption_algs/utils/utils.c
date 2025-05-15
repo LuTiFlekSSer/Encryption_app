@@ -234,7 +234,7 @@ uint8_t check_files(
             return 2; // ошибка при увеличении выходного файла
         }
     } else {
-        if (free_disk_space < metadata_size + file_size) {
+        if (free_disk_space < metadata_size) {
             close_files(input_file, output_file);
             return 1; // Недостаточно места на диске
         }

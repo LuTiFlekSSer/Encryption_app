@@ -64,6 +64,7 @@ class EncryptCard(CardWidget):
 
         self._input_path: str = ''
         self._output_path: str = ''
+        self._file_size: str = ''
         self._uid: str = ''
 
     def __init_widgets(self):
@@ -107,6 +108,7 @@ class EncryptCard(CardWidget):
         self._input_path = data['input_file']
         self._output_path = data['output_file']
         self._uid = data['uid']
+        self._file_size = data['file_size']
 
         file_icon = get_file_icon(data['input_file'])
         self._file_icon.setIcon(file_icon)
@@ -158,7 +160,7 @@ class EncryptCard(CardWidget):
         self._l_size.setMaximumWidth(max_width)
 
         self._set_elided_text(self._l_name, Path(self._input_path).name)
-        self._set_elided_text(self._l_size, get_normalized_size(self._locales, os.path.getsize(self._input_path)))
+        self._set_elided_text(self._l_size, self._file_size)
 
     @staticmethod
     def _set_elided_text(label: QLabel, text: str):
@@ -184,20 +186,21 @@ class EncryptList(SimpleCardWidget):
 
         self.__init_widgets()
         self._connect_widget_actions()
-        #
-        # QTimer.singleShot(5000, lambda: self._add_task(
-        #     {
-        #         'uid': 'u8i92wr43uy9terwuhigfsdrrgeujihsgerfdkbjdh',
-        #         'input_file': os.path.abspath('input.txt'),
-        #         'output_file': os.path.abspath('input.txt'),
-        #         'mode': 'magma-cbc',
-        #         'operation': OperationType.ENCRYPT,
-        #         'total': 1,
-        #         'current': 0,
-        #         'status': Status.WAITING,
-        #         'hash_password': 'oral_cumshot',
-        #     }
-        # ))
+
+        QTimer.singleShot(5000, lambda: self._add_task(
+            {
+                'uid': 'u8i92wr43uy9terwuhigfsdrrgeujihsgerfdkbjdh',
+                'input_file': "F:\\test",
+                'output_file': "F:\\test",
+                'mode': 'kyznechik-ctr',
+                'operation': OperationType.ENCRYPT,
+                'total': 1,
+                'current': 0,
+                'status': Status.WAITING,
+                'hash_password': 'oral_cumshot',
+                'file_size': get_normalized_size(self._locales, os.path.getsize("F:\\test"))
+            }
+        ))
 
     def _on_delete(self, output_path: str):
         self._encrypt_list.remove_item(output_path)
@@ -211,6 +214,7 @@ class EncryptList(SimpleCardWidget):
 
     def _on_update(self):
         self._encrypt_list.update_view()
+        self.update()
 
     def _on_update_progress(self, key: str, current: int, total: int):
         self._encrypt_list.items_dict[key]['current'] = current
