@@ -80,6 +80,12 @@ class HistoryCard(CardWidget):
                     content=self._locales.get_string('file_not_found'),
                     icon=InfoBarIcon.ERROR
                 )
+        else:
+            self._show_tool_tip(
+                title=self._locales.get_string('error'),
+                content=self._locales.get_string(self._status_description),
+                icon=InfoBarIcon.ERROR
+            )
 
     def __init_widgets(self):
         self._status_icon.setFixedSize(32, 32)
@@ -114,8 +120,8 @@ class HistoryCard(CardWidget):
         self._v_layout_output.addWidget(self._l_name_output)
         self._v_layout_output.addWidget(self._l_path_output)
 
-        self._h_layout.addWidget(self._l_mode, stretch=1)
         self._h_layout.addWidget(self._op_icon, stretch=1)
+        self._h_layout.addWidget(self._l_mode, stretch=1)
 
         self._h_layout.addWidget(self._l_time, alignment=Qt.AlignRight)
 
@@ -124,7 +130,7 @@ class HistoryCard(CardWidget):
     def set_data(self, data: HistoryRecord):
         self._input_path = data.input_path
         self._output_path = data.output_path
-        self._status_description = data.status_description  # todo описание должно браться из locales по названию из базы
+        self._status_description = data.status_description
         self._mode = data.mode
         self._status = data.status
 
@@ -147,7 +153,7 @@ class HistoryCard(CardWidget):
 
     def _update_text(self):
         max_width = int(
-            (self.width() - self._status_icon.width() - self._l_time.width() - 7 * 16) / 4)
+            (self.width() - self._op_icon.width() - self._status_icon.width() - self._l_time.width() - 7 * 16) / 3)
         self._w1.setMaximumWidth(max_width)
         self._w2.setMaximumWidth(max_width)
         self._l_name_input.setMaximumWidth(max_width)

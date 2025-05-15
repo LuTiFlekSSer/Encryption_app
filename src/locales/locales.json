@@ -223,6 +223,54 @@
     "file_not_found": {
       "ru": "Выходной файл не найден",
       "en": "Output file not found"
+    },
+    "SUCCESS": {
+      "ru": "Файл успешно обработан",
+      "en": "File processed successfully"
+    },
+    "DISK_INFO_FAILURE": {
+      "ru": "Не удалось получить информацию о диске",
+      "en": "Failed to get disk information"
+    },
+    "FILE_OPEN_FAILURE": {
+      "ru": "Не удалось открыть файл",
+      "en": "Failed to open file"
+    },
+    "FILE_SIZE_FAILURE": {
+      "ru": "Не удалось получить размер файла",
+      "en": "Failed to get file size"
+    },
+    "INSUFFICIENT_DISK_SPACE": {
+      "ru": "Недостаточно места на диске",
+      "en": "Insufficient disk space"
+    },
+    "OUTPUT_FILE_RESIZE_ERROR": {
+      "ru": "Не удалось изменить размер выходного файла",
+      "en": "Failed to resize output file"
+    },
+    "METADATA_PROCESSING_ERROR": {
+      "ru": "Не удалось обработать метаданные",
+      "en": "Failed to process metadata"
+    },
+    "THREAD_CREATION_FAILURE": {
+      "ru": "Не удалось создать потоки",
+      "en": "Failed to create threads"
+    },
+    "KEY_CREATION_FAILURE": {
+      "ru": "Не удалось создать ключи",
+      "en": "Failed to create keys"
+    },
+    "ENCRYPTION_FILE_PROCESSING_ERROR": {
+      "ru": "Ошибка во время работы алгоритма шифрования",
+      "en": "Error during encryption algorithm processing"
+    },
+    "ENCRYPTION_MEMORY_ALLOCATION_ERROR": {
+      "ru": "Ошибка выделения памяти при шифрования",
+      "en": "Memory allocation error during encryption"
+    },
+    "ENCRYPTION_FINAL_BYTES_ERROR": {
+      "ru": "Ошибка при обработке последних байт",
+      "en": "Error processing last bytes"
     }
   }
 }

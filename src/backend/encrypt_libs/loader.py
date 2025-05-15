@@ -12,6 +12,7 @@ from typing import Callable, Optional
 from PyQt5.QtCore import QObject, pyqtSignal
 
 from src.backend.db.data_base import DataBase
+from src.backend.db.db_records import HistoryRecord, OperationType
 from src.backend.encrypt_libs.additional_lib import AdditionalLib
 from src.backend.encrypt_libs.encrypt_lib import EncryptLib, LibStatus, EncryptResult
 from src.backend.encrypt_libs.errors import AddTaskError, FileError, SignatureError
@@ -38,7 +39,9 @@ class TTask:
                  total: ctypes.c_uint64,
                  output_path: str,
                  input_path: str,
-                 uid: str
+                 uid: str,
+                 mode: str,
+                 operation: OperationType
                  ):
         self.uid: str = uid
         self.current: ctypes.c_uint64 = current
@@ -47,6 +50,8 @@ class TTask:
         self.input_path: str = input_path
         self.output_path: str = output_path
         self.last_progress: int = -228
+        self.mode: str = mode
+        self.operation: OperationType = operation
 
 
 class Loader(metaclass=Singleton):
@@ -121,7 +126,6 @@ class Loader(metaclass=Singleton):
                 file_out_path: str,
                 hash_password: str,
                 uid: str):
-        # todo если что-то запущено, то нужно поставить флажок в процессе
         cur = ctypes.c_uint64(0)
         total = ctypes.c_uint64(1)
         key = bytearray(hashlib.sha512(hash_password.encode()).digest())  # todo sha512 -> PBKDF2
@@ -133,7 +137,9 @@ class Loader(metaclass=Singleton):
             total=total,
             output_path=file_out_path,
             input_path=file_in_path,
-            uid=uid
+            uid=uid,
+            mode=mode,
+            operation=OperationType.ENCRYPT
         )
         with self._lock:
             self._global_flags.is_running.set()
@@ -208,6 +214,18 @@ class Loader(metaclass=Singleton):
 
                 if task.future.done():
                     self.events.sig_update_status.emit(task.uid, task.future.result())
+
+                    record = HistoryRecord()
+                    record.input_path = task.input_path
+                    record.output_path = task.output_path
+                    record.status = task.future.result() == EncryptResult.SUCCESS
+                    record.status_description = task.future.result().name
+                    record.mode = task.mode
+                    record.operation = task.operation
+                    record.time = time.time()
+
+                    self._db.add_history_record(record)
+
                     to_remove.add(task)
 
                     self._running[task.input_path] -= 1
@@ -217,7 +235,7 @@ class Loader(metaclass=Singleton):
                     self._output_files.remove(task.output_path)
 
             self._queue -= to_remove
-            if not self._queue:
+            if len(self._queue) == 0:
                 self._global_flags.is_running.clear()
 
 

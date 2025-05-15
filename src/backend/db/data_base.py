@@ -22,7 +22,7 @@ TSettingName = Literal[
 
 
 class Events(QObject):
-    sig_add_history_record: pyqtSignal = pyqtSignal(HistoryRecord)
+    sig_add_history_record: pyqtSignal = pyqtSignal(int, HistoryRecord)
     sig_strip_last_history_records: pyqtSignal = pyqtSignal(int)
 
 
@@ -141,7 +141,7 @@ class DataBase(metaclass=Singleton):
                    VALUES (?, ?, ?, ?, ?, ?, ?)''', record.get_data())
             self._connection.commit()
 
-            self.events.sig_add_history_record.emit(record)
+            self.events.sig_add_history_record.emit(record.idx, record)
             self._strip_history()
 
     def get_history(self) -> List[HistoryRecord]:

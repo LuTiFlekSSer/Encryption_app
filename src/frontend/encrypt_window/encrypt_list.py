@@ -1,4 +1,5 @@
 import os
+import time
 from pathlib import Path
 from threading import Lock
 
@@ -8,7 +9,8 @@ from PyQt5.QtWidgets import QSizePolicy, QVBoxLayout, QLabel, QHBoxLayout, QWidg
 from qfluentwidgets import CardWidget, SimpleCardWidget, PipsPager, PipsScrollButtonDisplayMode, IconWidget, \
     StrongBodyLabel, CaptionLabel, ProgressBar, ToolButton, FluentIcon, InfoBar, InfoBarPosition
 
-from src.backend.db.db_records import OperationType
+from src.backend.db.data_base import DataBase
+from src.backend.db.db_records import OperationType, HistoryRecord
 from src.backend.encrypt_libs.encrypt_lib import EncryptResult
 from src.backend.encrypt_libs.errors import SignatureError
 from src.backend.encrypt_libs.loader import Loader
@@ -117,16 +119,26 @@ class EncryptCard(CardWidget):
 
         match data['status']:
             case Status.FAILED:
+                self._btn_delete.setEnabled(True)
+
                 self._pb_progress.setValue(100)
                 self._pb_progress.error()
             case Status.WAITING:
+                self._btn_delete.setEnabled(False)
+
                 if data['current'] >= 0:
                     self._pb_progress.resume()
                     data['status'] = Status.IN_PROGRESS
                     self._pb_progress.setValue(int(data['current'] / data['total'] * 100))
-            case _:
+            case Status.IN_PROGRESS:
+                self._btn_delete.setEnabled(False)
+
                 self._pb_progress.resume()
                 self._pb_progress.setValue(int(data['current'] / data['total'] * 100))
+            case Status.COMPLETED:
+                self._btn_delete.setEnabled(True)
+
+                self._pb_progress.setValue(100)
 
         self._l_status.setText(map_status_to_value[data['status']])
 
@@ -168,16 +180,17 @@ class EncryptList(SimpleCardWidget):
 
         self._loader: Loader = Loader()
         self._lock: Lock = Lock()
+        self._db: DataBase = DataBase()
 
         self.__init_widgets()
         self._connect_widget_actions()
-
+        #
         # QTimer.singleShot(5000, lambda: self._add_task(
         #     {
         #         'uid': 'u8i92wr43uy9terwuhigfsdrrgeujihsgerfdkbjdh',
         #         'input_file': os.path.abspath('input.txt'),
         #         'output_file': os.path.abspath('input.txt'),
-        #         'mode': 'kyznechik-cbc',
+        #         'mode': 'magma-cbc',
         #         'operation': OperationType.ENCRYPT,
         #         'total': 1,
         #         'current': 0,
@@ -265,8 +278,18 @@ class EncryptList(SimpleCardWidget):
             data['status'] = Status.FAILED
             self._encrypt_list.add_item(data['uid'], data)
 
+            record = HistoryRecord()
+            record.input_path = data['input_file']
+            record.output_path = data['output_file']
+            record.status = False
+            record.status_description = 'signature_error'
+            record.mode = data['mode']
+            record.operation = data['operation']
+            record.time = time.time()
+
+            self._db.add_history_record(record)
+
         except Exception as e:
-            print(e)
             InfoBar.error(
                 title=self._locales.get_string('error'),
                 content=self._locales.get_string('work_error'),
@@ -277,21 +300,16 @@ class EncryptList(SimpleCardWidget):
 
             data['status'] = Status.FAILED
             self._encrypt_list.add_item(data['uid'], data)
-# todo при расшифровке сделать сообщение, что такого режима нет
 
-#         view = TeachingTipView(
-#             title='test',
-#             content='test123',
-#             isClosable=True,
-#         )
-#
-#         tip = TeachingTip.make(
-#             target=self._command_bar,
-#             view=view,
-#             duration=-1,
-#             parent=self
-#         )
-#
-#         view.closed.connect(tip.close)
-#
-#         if view.isHidden()
+            record = HistoryRecord()
+            record.input_path = data['input_file']
+            record.output_path = data['output_file']
+            record.status = False
+            record.status_description = 'work_error'
+            record.mode = data['mode']
+            record.operation = data['operation']
+            record.time = time.time()
+
+            self._db.add_history_record(record)
+
+# todo при расшифровке сделать сообщение, что такого режима нет
