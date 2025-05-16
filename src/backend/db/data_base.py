@@ -1,5 +1,6 @@
 import os
 import sqlite3
+import uuid
 from os import cpu_count
 from threading import Lock
 from typing import Literal, List
@@ -141,7 +142,7 @@ class DataBase(metaclass=Singleton):
                    VALUES (?, ?, ?, ?, ?, ?, ?)''', record.get_data())
             self._connection.commit()
 
-            self.events.sig_add_history_record.emit(record.idx, record)
+            self.events.sig_add_history_record.emit(uuid.uuid4(), record)
             self._strip_history()
 
     def get_history(self) -> List[HistoryRecord]:

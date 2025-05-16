@@ -1,7 +1,6 @@
 #include "kyznechik-ecb.h"
 
 #include <stdio.h>
-#include <iso646.h>
 
 #include "kyznechik.h"
 #include "utils.h"

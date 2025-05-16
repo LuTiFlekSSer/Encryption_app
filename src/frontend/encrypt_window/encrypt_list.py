@@ -19,7 +19,7 @@ from src.frontend.paged_list_view import PagedListView
 from src.frontend.sub_windows.file_adder_window.file_adder_window import TEncryptData, Status
 from src.locales.locales import Locales
 from src.utils.config import Config
-from src.utils.utils import get_file_icon, get_normalized_size, find_mega_parent
+from src.utils.utils import get_normalized_size, find_mega_parent, get_file_icon
 
 locales = Locales()
 map_status_to_value: dict[Status, str] = {
@@ -110,8 +110,7 @@ class EncryptCard(CardWidget):
         self._uid = data['uid']
         self._file_size = data['file_size']
 
-        file_icon = get_file_icon(data['input_file'])
-        self._file_icon.setIcon(file_icon)
+        self._file_icon.setIcon(data['file_icon'])
 
         self._l_mode.setText(data['mode'])
 
@@ -187,18 +186,20 @@ class EncryptList(SimpleCardWidget):
         self.__init_widgets()
         self._connect_widget_actions()
 
+        file = 'E:\\test'
         QTimer.singleShot(5000, lambda: self._add_task(
             {
                 'uid': 'u8i92wr43uy9terwuhigfsdrrgeujihsgerfdkbjdh',
-                'input_file': "F:\\test",
-                'output_file': "F:\\test",
+                'input_file': file,
+                'output_file': file,
                 'mode': 'kyznechik-ctr',
                 'operation': OperationType.ENCRYPT,
                 'total': 1,
                 'current': 0,
                 'status': Status.WAITING,
                 'hash_password': 'oral_cumshot',
-                'file_size': get_normalized_size(self._locales, os.path.getsize("F:\\test"))
+                'file_size': get_normalized_size(self._locales, os.path.getsize(file)),
+                'file_icon':get_file_icon(file)
             }
         ))
 

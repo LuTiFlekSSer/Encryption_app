@@ -1,6 +1,8 @@
 from enum import Enum
 from typing import TypedDict
 
+from PyQt5.QtGui import QIcon
+
 from src.backend.db.db_records import OperationType
 
 
@@ -21,5 +23,6 @@ TEncryptData = TypedDict('TEncryptData', {
     'current': int,
     'status': Status,
     'hash_password': str,
-    'file_size': str
+    'file_size': str,
+    'file_icon': QIcon,
 })
