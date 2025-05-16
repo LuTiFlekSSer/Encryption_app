@@ -73,7 +73,7 @@ class HistoryCard(CardWidget):
     def _on_click(self):
         if self._status:
             if os.path.exists(self._input_path):
-                QProcess.startDetached('explorer', [f'/select,{os.path.normpath(self._input_path)}'])
+                QProcess.startDetached('explorer', [f'/select,{os.path.normpath(self._output_path)}'])
             else:
                 self._show_tool_tip(
                     title=self._locales.get_string('error'),
@@ -104,9 +104,9 @@ class HistoryCard(CardWidget):
         self._v_layout_output.setAlignment(Qt.AlignTop)
 
         self._l_name_input.setTextColor(QColor(Config.GRAY_COLOR_900), QColor(Config.GRAY_COLOR_50))
-        self._l_path_input.setTextColor(QColor(Config.GRAY_COLOR_900), QColor(Config.GRAY_COLOR_50))
+        self._l_path_input.setTextColor(QColor(Config.GRAY_COLOR_700), QColor(Config.GRAY_COLOR_200))
         self._l_name_output.setTextColor(QColor(Config.GRAY_COLOR_900), QColor(Config.GRAY_COLOR_50))
-        self._l_path_output.setTextColor(QColor(Config.GRAY_COLOR_900), QColor(Config.GRAY_COLOR_50))
+        self._l_path_output.setTextColor(QColor(Config.GRAY_COLOR_700), QColor(Config.GRAY_COLOR_200))
         self._l_mode.setTextColor(QColor(Config.GRAY_COLOR_900), QColor(Config.GRAY_COLOR_50))
         self._l_time.setTextColor(QColor(Config.GRAY_COLOR_900), QColor(Config.GRAY_COLOR_50))
 

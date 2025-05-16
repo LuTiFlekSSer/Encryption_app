@@ -3,7 +3,7 @@ import sys
 from os import PathLike
 
 from PyQt5.QtCore import QFileInfo, QSize
-from PyQt5.QtGui import QIcon, QPixmap
+from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QWidget, QFileIconProvider
 
 
@@ -22,14 +22,15 @@ def get_normalized_size(locales, size: int) -> str:
 
 
 def get_file_icon(file_path: str, size: QSize = QSize(128, 128)) -> QIcon:
+    # todo получать картинку не от конкретного файла, а от типа файла
     file_info = QFileInfo(file_path)
     provider = QFileIconProvider()
     icon = provider.icon(file_info)
 
     pixmap = icon.pixmap(size)
     pixmap_copy = pixmap.copy()
-    return QIcon(pixmap_copy)
 
+    return QIcon(pixmap_copy)
 
 
 def resource_path(relative_path: str | PathLike[str]) -> str:

@@ -25,4 +25,6 @@ TEncryptData = TypedDict('TEncryptData', {
     'hash_password': str,
     'file_size': str,
     'file_icon': QIcon,
+    'status_description': str,
+    'start_time': float
 })

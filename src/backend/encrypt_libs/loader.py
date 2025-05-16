@@ -28,6 +28,7 @@ class ReadCipher(Enum):
 
 
 class Events(QObject):
+    sig_task_start: pyqtSignal = pyqtSignal(str, float)
     sig_update_progress: pyqtSignal = pyqtSignal(str, int, int)
     sig_update_status: pyqtSignal = pyqtSignal(str, EncryptResult)
     sig_update: pyqtSignal = pyqtSignal()
@@ -172,6 +173,7 @@ class Loader(metaclass=Singleton):
                       task: TTask
                       ) -> EncryptResult:
         with self._lock:
+            self.events.sig_task_start.emit(task.uid, time.time())
             self._queue.add(task)
 
         return func(file_in_path,

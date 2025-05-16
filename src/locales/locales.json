@@ -271,6 +271,34 @@
     "ENCRYPTION_FINAL_BYTES_ERROR": {
       "ru": "Ошибка при обработке последних байт",
       "en": "Error processing last bytes"
+    },
+    "waiting_description": {
+      "ru": "Ожидание запуска задачи",
+      "en": "Waiting for task start"
+    },
+    "in_progress_description": {
+      "ru": "Задача выполняется",
+      "en": "Task in progress"
+    },
+    "year": {
+      "ru": "год",
+      "en": "yr"
+    },
+    "years": {
+      "ru": "лет",
+      "en": "yrs"
+    },
+    "month": {
+      "ru": "мес.",
+      "en": "mo."
+    },
+    "day": {
+      "ru": "дн.",
+      "en": "d."
+    },
+    "hour": {
+      "ru": "ч.",
+      "en": "h."
     }
   }
 }

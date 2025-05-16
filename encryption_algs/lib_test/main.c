@@ -1,5 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
+
+#include "kyznechik-cbc.h"
+#include "kyznechik-ctr.h"
 #include "time.h"
 #include "magma.h"
 #include "magma-cbc.h"
@@ -55,10 +58,10 @@ int main() {
     printf("%d\n", result);
     printf("%llu %llu\n", curr, total);
 
-    result = decrypt_magma_cbc(
-        L"../../../input.txt",
-        L"C:\\",
-        L"../../../input.txt",
+    result = decrypt_kyznechik_ctr(
+        L"E:/test",
+        L"E:\\",
+        L"E:/test",
         magma_key,
         1,
         &curr,
