@@ -153,7 +153,8 @@ class HistoryCard(CardWidget):
 
     def _update_text(self):
         max_width = int(
-            (self.width() - self._op_icon.width() - self._status_icon.width() - self._l_time.width() - 7 * 16) / 3)
+            (self.width() - self._op_icon.width() - self._status_icon.width() -
+             self._l_time.width() - 7 * self._h_layout.spacing()) / 3)
         self._w1.setMaximumWidth(max_width)
         self._w2.setMaximumWidth(max_width)
         self._l_name_input.setMaximumWidth(max_width)

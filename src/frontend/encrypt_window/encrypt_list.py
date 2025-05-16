@@ -30,8 +30,8 @@ map_status_to_value: dict[Status, str] = {
 }
 
 
+# todo при расшифровке сделать сообщение, что такого режима нет
 # todo info bar при нажатии на карточку с подробным описанием ошибки или открыть результат
-# todo кнопка удалить изначально неактивная
 # todo оставшееся время
 
 class Events(QObject):
@@ -69,7 +69,7 @@ class EncryptCard(CardWidget):
 
     def __init_widgets(self):
         self._h_layout.setContentsMargins(16, 16, 16, 16)
-        self._h_layout.setSpacing(16)
+        self._h_layout.setSpacing(24)
         self._h_layout.setAlignment(Qt.AlignVCenter)
 
         self._file_icon.setFixedSize(32, 32)
@@ -152,9 +152,8 @@ class EncryptCard(CardWidget):
     def _update_text(self):
         if self._output_path == '':
             return
-        max_width = (
-                self.width() - self._file_icon.width() - self._op_icon.width() - self._pb_progress.width()
-                - self._l_status.width() - self._btn_delete.width() - self._l_mode.width() - 8 * 16)
+        max_width = (self.width() - self._file_icon.width() - self._op_icon.width() - self._pb_progress.width()
+                     - self._l_status.width() - self._btn_delete.width() - self._l_mode.width() - 8 * self._h_layout.spacing())
         self._l_name.setMaximumWidth(max_width)
         self._l_size.setMaximumWidth(max_width)
 
@@ -199,7 +198,7 @@ class EncryptList(SimpleCardWidget):
                 'status': Status.WAITING,
                 'hash_password': 'oral_cumshot',
                 'file_size': get_normalized_size(self._locales, os.path.getsize(file)),
-                'file_icon':get_file_icon(file)
+                'file_icon': get_file_icon(file)
             }
         ))
 
@@ -316,5 +315,3 @@ class EncryptList(SimpleCardWidget):
             record.time = time.time()
 
             self._db.add_history_record(record)
-
-# todo при расшифровке сделать сообщение, что такого режима нет
