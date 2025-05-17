@@ -5,7 +5,7 @@ from typing import Callable
 import win32api
 
 from src.backend.encrypt_libs.encrypt_lib import LibStatus
-from src.utils.config import Config
+from src.utils.config import Config, TExtraFunc
 
 
 class AdditionalLib:
@@ -17,7 +17,7 @@ class AdditionalLib:
             self._load_status = LibStatus.LOAD_LIB_ERROR
             return
 
-        self._funcs: dict[str, Callable] = {}
+        self._funcs: dict[TExtraFunc, Callable] = {}
         find_any: bool = False
 
         for name, func in Config.EXTRA_FUNCS.items():
@@ -37,20 +37,30 @@ class AdditionalLib:
         return self._load_status
 
     @property
-    def funcs(self) -> dict[str, Callable]:
+    def funcs(self) -> dict[TExtraFunc, Callable]:
         return self._funcs
 
 
-if __name__ == '__main__':
-    os.environ['PATH'] = f'{os.path.abspath('../../../encryption_algs/libs/release/')}{os.pathsep}{os.environ['PATH']}'
-
-    aboba = AdditionalLib('../../../encryption_algs/libs/release/libutils.dll')
-    if aboba._load_status == LibStatus.SUCCESS:
-        print('Success')
-        hui = ctypes.create_string_buffer(256)
-        res = aboba.funcs['read_cipher_from_file']('../../../input.txt', hui)
-        print(type(res))
-        print(hui.value.decode('utf-8'))
-
-    else:
-        print(aboba._load_status)
+# if __name__ == '__main__':
+#     os.environ['PATH'] = f'{os.path.abspath('../../../encryption_algs/libs/release/')}{os.pathsep}{os.environ['PATH']}'
+#
+#     key_type = ctypes.c_uint8 * 32
+#     key = key_type(*[i for i in range(32)])
+#     KS = ctypes.POINTER(ctypes.POINTER(ctypes.c_uint8))()
+#
+#     data_type = ctypes.c_uint8 * 8
+#     data = data_type(*[i for i in range(8)])
+#
+#     aboba = AdditionalLib('../../../encryption_algs/libs/release/libmagma-base.dll')
+#     if aboba._load_status == LibStatus.SUCCESS:
+#         print('Success')
+#         aboba.funcs['magma_init']()
+#         res = aboba.funcs['magma_generate_keys'](key, ctypes.byref(KS))
+#         print('Key gen' if res == 0 else 'Key err')
+#         aboba.funcs['magma_encrypt_data'](KS, data, data)
+#         aboba.funcs['magma_decrypt_data'](KS, data, data)
+#         aboba.funcs['magma_finalize'](KS)
+#         print(list(data))
+#
+#     else:
+#         print(aboba._load_status)
