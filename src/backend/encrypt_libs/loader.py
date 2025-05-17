@@ -15,7 +15,7 @@ from src.backend.db.data_base import DataBase
 from src.backend.db.db_records import HistoryRecord, OperationType
 from src.backend.encrypt_libs.additional_lib import AdditionalLib
 from src.backend.encrypt_libs.encrypt_lib import EncryptLib, LibStatus, EncryptResult
-from src.backend.encrypt_libs.errors import AddTaskError, FileError, SignatureError
+from src.backend.encrypt_libs.errors import AddTaskError, FileError, SignatureError, FunctionNotFoundError
 from src.global_flags import GlobalFlags
 from src.utils.config import Config, TExtraFunc
 from src.utils.singleton import Singleton
@@ -90,9 +90,9 @@ class Loader(metaclass=Singleton):
                     case _:
                         self._libs[f'{cur_lib.cipher}-{cur_lib.mode}'] = cur_lib
 
-    def _get_cipher(self, file_path):
+    def _get_cipher(self, file_path: str) -> str:
         if 'read_cipher_from_file' not in self._extra_libs:
-            raise AddTaskError
+            raise FunctionNotFoundError
 
         cipher_info = ctypes.create_string_buffer(256)
         res = self._extra_libs['read_cipher_from_file'](file_path, cipher_info)
@@ -105,12 +105,16 @@ class Loader(metaclass=Singleton):
             case _:
                 return cipher_info.value.decode('utf-8')
 
-    def micro_magma(self, hash_password: str, text: bytes, op: OperationType):
-        if any(func not in self._extra_libs for func in ['magma_init', 'magma_generate_keys', 'magma_encrypt_data', 'magma_decrypt_data', 'magma_finalize']):
-            raise AddTaskError  # Magma-base не найдена
+    def micro_magma(self, password: str, text: bytes, op: OperationType) -> bytes:
+        if any(func not in self._extra_libs for func in
+               ['magma_init', 'magma_generate_keys', 'magma_encrypt_data', 'magma_decrypt_data', 'magma_finalize']):
+            raise FunctionNotFoundError  # Magma-base не найдена
+
+        if len(text) == 0:
+            raise ValueError
 
         key_type = ctypes.c_uint8 * 32  # todo Сделать нормально после PBKDF2
-        key = hashlib.sha512(hash_password.encode()).digest()
+        key = hashlib.sha512(password.encode()).digest()
         key = key_type(*key[:32])
 
         KS = ctypes.POINTER(ctypes.POINTER(ctypes.c_uint8))()
@@ -120,14 +124,16 @@ class Loader(metaclass=Singleton):
         if res != 0:
             raise AddTaskError  # Не сгенерил ключи
 
-        if len(text) % 8 != 0:
-            raise AddTaskError  # Длина текста не кратна 8 байтам
+        byte_text = bytearray(text)
+        if op == OperationType.ENCRYPT:
+            metadata = bytearray([128] + [0] * (8 - (len(byte_text) % 8) - 1))
+            byte_text += metadata
 
-        result = bytearray(len(text))
+        result = bytearray(len(byte_text))
         data_type = ctypes.c_uint8 * 8
 
-        for i in range(len(text) // 8):
-            data = data_type(*text[i * 8:(i + 1) * 8])
+        for i in range(len(byte_text) // 8):
+            data = data_type(*byte_text[i * 8:(i + 1) * 8])
 
             if op == OperationType.ENCRYPT:
                 self._extra_libs['magma_encrypt_data'](KS, data, data)
@@ -137,14 +143,25 @@ class Loader(metaclass=Singleton):
             result[i * 8:(i + 1) * 8] = bytes(data)
 
         self._extra_libs['magma_finalize'](KS)
-        return result
+        if op == OperationType.DECRYPT:
+            idx = -1
+            while result[idx] != 128:
+                idx -= 1
+            result = result[:idx]
 
-    def micro_kyznechik(self, hash_password: str, text: bytes, op: OperationType):
-        if any(func not in self._extra_libs for func in ['kyznechik_init', 'kyznechik_generate_keys', 'kyznechik_encrypt_data', 'kyznechik_decrypt_data', 'kyznechik_finalize']):
-            raise AddTaskError  # Kyznechik-base не найден
+        return bytes(result)
+
+    def micro_kyznechik(self, password: str, text: bytes, op: OperationType)-> bytes:
+        if any(func not in self._extra_libs for func in
+               ['kyznechik_init', 'kyznechik_generate_keys', 'kyznechik_encrypt_data', 'kyznechik_decrypt_data',
+                'kyznechik_finalize']):
+            raise FunctionNotFoundError  # Kyznechik-base не найден
+
+        if len(text) == 0:
+            raise ValueError
 
         key_type = ctypes.c_uint8 * 32  # todo Сделать нормально после PBKDF2
-        key = hashlib.sha512(hash_password.encode()).digest()
+        key = hashlib.sha512(password.encode()).digest()
         key = key_type(*key[:32])
 
         KS = ctypes.POINTER(ctypes.POINTER(ctypes.c_uint8))()
@@ -154,14 +171,16 @@ class Loader(metaclass=Singleton):
         if res != 0:
             raise AddTaskError  # Не сгенерил ключи
 
-        if len(text) % 16 != 0:
-            raise AddTaskError  # Длина текста не кратна 16 байтам
+        byte_text = bytearray(text)
+        if op == OperationType.ENCRYPT:
+            metadata = bytearray([128] + [0] * (16 - (len(byte_text) % 16) - 1))
+            byte_text += metadata
 
-        result = bytearray(len(text))
+        result = bytearray(len(byte_text))
         data_type = ctypes.c_uint8 * 16
 
-        for i in range(len(text) // 16):
-            data = data_type(*text[i * 16:(i + 1) * 16])
+        for i in range(len(byte_text) // 16):
+            data = data_type(*byte_text[i * 16:(i + 1) * 16])
 
             if op == OperationType.ENCRYPT:
                 self._extra_libs['kyznechik_encrypt_data'](KS, data, data)
@@ -171,7 +190,13 @@ class Loader(metaclass=Singleton):
             result[i * 16:(i + 1) * 16] = bytes(data)
 
         self._extra_libs['kyznechik_finalize'](KS)
-        return result
+        if op == OperationType.DECRYPT:
+            idx = -1
+            while result[idx] != 128:
+                idx -= 1
+            result = result[:idx]
+
+        return bytes(result)
 
     def check_encrypt_file(self, file_in_path: str, file_out_path: str):
         with self._lock:
@@ -311,10 +336,10 @@ class Loader(metaclass=Singleton):
 
 if __name__ == '__main__':
     loader = Loader()
-    aboba = 'НАШ Слава Богу 🙏❤СЛАВА РОССИИ 🙏❤АНГЕЛА ХРАНИТЕЛЯ КАЖДОМУ ИЗ ВАС 🙏❤БОЖЕ ХРАНИ РОССИЮ 🙏❤СПАСИБО ВАМ НАШИ МАЛЬЧИКИ'.encode("utf-8")
-    aboba = aboba[:len(aboba) // 8 * 8]
+    aboba = 'НАШ Слава Богу 🙏❤СЛАВА РОССИИ 🙏❤АНГЕЛА ХРАНИТЕЛЯ КАЖДОМУ ИЗ ВАС 🙏❤БОЖЕ ХРАНИ РОССИЮ 🙏❤СПАСИБО ВАМ НАШИ МАЛЬЧИКИ'.encode(
+        'utf-8')
     print(aboba.hex())
     aboba = loader.micro_magma('sosal', aboba, OperationType.ENCRYPT)
     print(aboba.hex())
     aboba = loader.micro_magma('sosal', aboba, OperationType.DECRYPT)
-    print(aboba.decode('utf-8'))
+    print(aboba.hex())

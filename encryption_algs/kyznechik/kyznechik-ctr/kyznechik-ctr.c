@@ -10,11 +10,11 @@
 
 uint8_t const S = 128; // можно менять от 8 до 128 кратно 8
 
-char* get_cipher_name(){
+char* get_cipher_name() {
     return "kyznechik";
 }
 
-char* get_mode_name(){
+char* get_mode_name() {
     return "ctr";
 }
 
@@ -332,6 +332,20 @@ uint8_t encrypt_kyznechik_ctr(
     return 0;
 }
 
+uint8_t remove_last_bytes(HANDLE output_file, uint64_t const file_size) {
+    LARGE_INTEGER out_file_size;
+    out_file_size.QuadPart = (int64_t)file_size - 11;
+
+    if (SetFilePointerEx(output_file, out_file_size, NULL, FILE_BEGIN) == 0) {
+        return 1; // Ошибка при изменении размера файла
+    }
+
+    if (!SetEndOfFile(output_file)) {
+        return 1; // Ошибка при изменении размера файла
+    }
+    return 0;
+}
+
 uint8_t decrypt_kyznechik_ctr(
     const WCHAR *file_in_path,
     const WCHAR *disk_out_name,
@@ -486,6 +500,11 @@ uint8_t decrypt_kyznechik_ctr(
     kyznechik_finalize(Ks);
     delete_threads_data(threads_data, threads_id, threads);
     DeleteCriticalSection(&lock);
+    if (input_file == output_file) {
+        if (remove_last_bytes(output_file, file_size.result) != 0) {
+            return 5; // Ошибка при изменении размера файла
+        }
+    }
     close_files(input_file, output_file);
 
     if (error == 1) {

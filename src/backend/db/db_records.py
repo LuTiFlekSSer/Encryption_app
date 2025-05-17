@@ -38,3 +38,18 @@ class HistoryRecord:
 
     def get_data(self) -> Tuple[str, str, bool, str, str, bool, float]:
         return self.input_path, self.output_path, self.status, self.status_description, self.mode, self.operation.value, self.time
+
+
+class PasswordRecord:
+    def __init__(self):
+        self.name: str = ''
+        self.password: bytes = b''
+
+    def set_data(self,
+                 name: str,
+                 password: bytes):
+        self.name = name
+        self.password = password
+
+    def get_data(self) -> Tuple[str, bytes]:
+        return self.name, self.password

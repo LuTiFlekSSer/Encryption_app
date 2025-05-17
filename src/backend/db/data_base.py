@@ -7,7 +7,7 @@ from typing import Literal, List
 
 from PyQt5.QtCore import QObject, pyqtSignal
 
-from src.backend.db.db_records import HistoryRecord
+from src.backend.db.db_records import HistoryRecord, PasswordRecord
 from src.utils.config import Config
 from src.utils.singleton import Singleton
 
@@ -18,7 +18,8 @@ TSettingName = Literal[
     'window_size',
     'window_mode',
     'theme',
-    'history_size'
+    'history_size',
+    'password_cipher'
 ]
 
 
@@ -68,6 +69,19 @@ class DataBase(metaclass=Singleton):
             )
         ''')  # operation  False - decrypt True - encrypt
 
+        curr.execute(f'''
+            CREATE TABLE IF NOT EXISTS passwords (
+                'name' TEXT PRIMARY KEY NOT NULL,
+                'password' BLOB NOT NULL
+            )
+        ''')
+
+        curr.execute(f'''
+            CREATE TABLE IF NOT EXISTS password_signature (
+                'signature' BLOB NOT NULL
+            )
+        ''')
+
         def set_default_value(name: TSettingName, value: str):
             curr.execute(f'''
                         INSERT INTO settings
@@ -82,6 +96,7 @@ class DataBase(metaclass=Singleton):
         set_default_value('window_mode', 'normal')
         set_default_value('theme', 'AUTO')
         set_default_value('history_size', '1000')
+        set_default_value('password_cipher', '')
 
         self._max_history_size = int(self.get_setting('history_size'))
         self._strip_history()
@@ -169,4 +184,76 @@ class DataBase(metaclass=Singleton):
 
             curr.execute('''DELETE
                             FROM history''')
+            self._connection.commit()
+
+    def add_password(self, record: PasswordRecord):
+        with self._lock:
+            curr = self._connection.cursor()
+
+            curr.execute('''SELECT 1
+                            FROM passwords
+                            WHERE name = ? LIMIT 1''', (record.name,))
+
+            if curr.fetchone() is None:
+                curr.execute('''INSERT INTO passwords (name, password)
+                                VALUES (?, ?)''', record.get_data())
+            else:
+                raise ValueError
+            self._connection.commit()
+
+    def get_password(self, name: str) -> bytes:
+        with self._lock:
+            curr = self._connection.cursor()
+
+            curr.execute('''SELECT password
+                            FROM passwords
+                            WHERE name = ?''', (name,))
+            password = curr.fetchall()
+            self._connection.commit()
+
+            if len(password) == 0:
+                raise ValueError
+
+            return password[0][0]
+
+    def get_all_passwords(self) -> List[PasswordRecord]:
+        with self._lock:
+            curr = self._connection.cursor()
+
+            curr.execute('''SELECT name, password
+                            FROM passwords''')
+            passwords = curr.fetchall()
+            self._connection.commit()
+
+            records = []
+            for record in passwords:
+                password_record = PasswordRecord()
+                password_record.set_data(*record)
+                records.append(password_record)
+
+            return records
+
+    def remove_password(self, name: str):
+        with self._lock:
+            curr = self._connection.cursor()
+
+            curr.execute('''SELECT 1
+                            FROM passwords
+                            WHERE name = ? LIMIT 1''', (name,))
+
+            if curr.fetchone() is None:
+                curr.execute('''DELETE
+                                FROM passwords
+                                WHERE name = ?''', (name,))
+            else:
+                raise ValueError
+
+            self._connection.commit()
+
+    def remove_all_passwords(self):
+        with self._lock:
+            curr = self._connection.cursor()
+
+            curr.execute('''DELETE
+                            FROM passwords''')
             self._connection.commit()

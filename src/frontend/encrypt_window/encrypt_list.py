@@ -3,7 +3,7 @@ import time
 from pathlib import Path
 from threading import Lock
 
-from PyQt5.QtCore import Qt, pyqtSignal, QObject, QTimer, QProcess
+from PyQt5.QtCore import Qt, pyqtSignal, QObject, QProcess, QTimer
 from PyQt5.QtGui import QFontMetrics, QColor
 from PyQt5.QtWidgets import QSizePolicy, QVBoxLayout, QLabel, QHBoxLayout, QWidget
 from qfluentwidgets import CardWidget, SimpleCardWidget, PipsPager, PipsScrollButtonDisplayMode, IconWidget, \
@@ -20,7 +20,7 @@ from src.frontend.paged_list_view import PagedListView
 from src.frontend.sub_windows.file_adder_window.file_adder_window import TEncryptData, Status
 from src.locales.locales import Locales
 from src.utils.config import Config
-from src.utils.utils import get_normalized_size, find_mega_parent, get_file_icon
+from src.utils.utils import find_mega_parent, get_normalized_size, get_file_icon
 
 locales = Locales()
 map_status_to_value: dict[Status, str] = {
@@ -89,13 +89,13 @@ class StatusWidget(QWidget):
     def __init_widgets(self):
         self._v_layout.setContentsMargins(0, 0, 0, 0)
         self._v_layout.setSpacing(0)
-        self._v_layout.setAlignment(Qt.AlignTop)
+        self._v_layout.setAlignment(Qt.AlignVCenter)
 
         self._l_status.setTextColor(QColor(Config.GRAY_COLOR_900), QColor(Config.GRAY_COLOR_50))
         self._l_eta.setTextColor(QColor(Config.GRAY_COLOR_700), QColor(Config.GRAY_COLOR_200))
 
         self._v_layout.addWidget(self._l_status)
-        self._l_eta.hide()
+        self._l_eta.setVisible(False)
 
     def set_status(self, status: str):
         self._l_status.setText(status)
@@ -107,23 +107,33 @@ class StatusWidget(QWidget):
         hours, seconds = divmod(seconds, 3600)
         minutes, seconds = divmod(seconds, 60)
 
-        if years >= 1:# todo доделать
+        if years >= 1:
             yeats_str = self._locales.get_string('year') if years == 1 else self._locales.get_string('years')
-            return f'{int(years)} {} {int(months)} мес.'
+            return f'{int(years)} {yeats_str} {int(months)} {self._locales.get_string('month')}'
         elif months >= 1:
-            return f'{int(months)} {} {int(days)} {}'
+            return f'{int(months)} {self._locales.get_string('month')} {int(days)} {self._locales.get_string('day')}'
         elif days >= 1:
-            return f'{int(days)} {} {int(hours)} {}'
+            return f'{int(days)} {self._locales.get_string('day')} {int(hours)} {self._locales.get_string('hour')}'
         else:
             return f'{int(hours):02}:{int(minutes):02}:{int(seconds):02}'
 
     def update_eta(self, status: Status, current: int, total: int, start_time: float):
         match status:
             case Status.IN_PROGRESS:
-                self._l_eta.show()
+                self._v_layout.addWidget(self._l_eta)
+                self._l_eta.setVisible(True)
+                try:
+                    elapsed_time = (time.time() - start_time) / current * (total - current)
+                    eta = self.format_eta(elapsed_time)
+                except ZeroDivisionError:
+                    eta = '--------'
+
+                self._l_eta.setText('ETA: ' + eta)
 
             case _:
-                self._l_eta.hide()
+                if self._l_eta.isVisible():
+                    self._v_layout.removeWidget(self._l_eta)
+                    self._l_eta.setVisible(False)
 
 
 class EncryptCard(CardWidget):
@@ -144,7 +154,7 @@ class EncryptCard(CardWidget):
         self._l_mode: StrongBodyLabel = StrongBodyLabel(self)
         self._op_icon: IconWidget = IconWidget(self)
         self._pw_progress: ProgressWidget = ProgressWidget(self)
-        self._l_status: StrongBodyLabel = StrongBodyLabel(self)
+        self._w_status: StatusWidget = StatusWidget(self)
         self._btn_delete: ToolButton = ToolButton(self)
 
         self._locales: Locales = Locales()
@@ -232,7 +242,6 @@ class EncryptCard(CardWidget):
         self._l_name_output.setTextColor(QColor(Config.GRAY_COLOR_900), QColor(Config.GRAY_COLOR_50))
         self._l_path_input.setTextColor(QColor(Config.GRAY_COLOR_700), QColor(Config.GRAY_COLOR_200))
         self._l_path_output.setTextColor(QColor(Config.GRAY_COLOR_700), QColor(Config.GRAY_COLOR_200))
-        self._l_status.setTextColor(QColor(Config.GRAY_COLOR_900), QColor(Config.GRAY_COLOR_50))
         self._l_mode.setTextColor(QColor(Config.GRAY_COLOR_900), QColor(Config.GRAY_COLOR_50))
 
         self._v_layout_input.setContentsMargins(0, 0, 0, 0)
@@ -257,7 +266,7 @@ class EncryptCard(CardWidget):
         self._h_layout.addWidget(self._op_icon, alignment=Qt.AlignRight)
         self._h_layout.addWidget(self._l_mode, alignment=Qt.AlignRight)
         self._h_layout.addWidget(self._pw_progress, alignment=Qt.AlignRight)
-        self._h_layout.addWidget(self._l_status, alignment=Qt.AlignRight)
+        self._h_layout.addWidget(self._w_status, alignment=Qt.AlignRight)
 
         self._h_layout.addWidget(self._btn_delete, alignment=Qt.AlignRight)
 
@@ -303,7 +312,8 @@ class EncryptCard(CardWidget):
 
                 self._pw_progress.setValue(100)
 
-        self._l_status.setText(map_status_to_value[data['status']])
+        self._w_status.set_status(map_status_to_value[data['status']])
+        self._w_status.update_eta(data['status'], data['current'], data['total'], data['start_time'])
 
         self._update_text()
 
@@ -315,7 +325,7 @@ class EncryptCard(CardWidget):
         if self._output_path == '':
             return
         max_width = int((self.width() - self._file_icon.width() - self._op_icon.width() - self._pw_progress.width()
-                         - self._l_status.width() - self._btn_delete.width() - self._l_mode.width()
+                         - self._w_status.width() - self._btn_delete.width() - self._l_mode.width()
                          - 10 * self._h_layout.spacing()) / 3)
         self._l_name_input.setMaximumWidth(max_width)
         self._l_name_output.setMaximumWidth(max_width)
@@ -354,7 +364,7 @@ class EncryptList(SimpleCardWidget):
         self.__init_widgets()
         self._connect_widget_actions()
 
-        file = 'E:\\test'
+        file = 'F:\\test'
         QTimer.singleShot(5000, lambda: self._add_task(
             {
                 'uid': 'u8i92wr43uy9terwuhigfsdrrgeujihsgerfdkbjdh',
@@ -373,24 +383,24 @@ class EncryptList(SimpleCardWidget):
             }
         ))
 
-        QTimer.singleShot(6000, lambda: self._add_task(
-            {
-                'uid': 'u8i92wr43uy9terwuhigfsdrujihsgerfdkbjdh',
-                'input_file': "C:\\Users\\boris\\Downloads\\input.txt",
-                'output_file': "C:\\Users\\boris\\Downloads\\input.txt",
-                'mode': 'kyznechik-ctr',
-                'operation': OperationType.ENCRYPT,
-                'total': 1,
-                'current': -228,
-                'status': Status.WAITING,
-                'hash_password': 'oral_cumshot',
-                'file_size': get_normalized_size(self._locales,
-                                                 os.path.getsize("C:\\Users\\boris\\Downloads\\input.txt")),
-                'file_icon': get_file_icon("C:\\Users\\boris\\Downloads\\input.txt"),
-                'status_description': '',
-                'start_time': 0
-            }
-        ))
+        # QTimer.singleShot(6000, lambda: self._add_task(
+        #     {
+        #         'uid': 'u8i92wr43uy9terwuhigfsdrujihsgerfdkbjdh',
+        #         'input_file': "C:\\Users\\boris\\Downloads\\input.txt",
+        #         'output_file': "C:\\Users\\boris\\Downloads\\input.txt",
+        #         'mode': 'kyznechik-ctr',
+        #         'operation': OperationType.ENCRYPT,
+        #         'total': 1,
+        #         'current': -228,
+        #         'status': Status.WAITING,
+        #         'hash_password': 'oral_cumshot',
+        #         'file_size': get_normalized_size(self._locales,
+        #                                          os.path.getsize("C:\\Users\\boris\\Downloads\\input.txt")),
+        #         'file_icon': get_file_icon("C:\\Users\\boris\\Downloads\\input.txt"),
+        #         'status_description': '',
+        #         'start_time': 0
+        #     }
+        # ))
 
     def _on_delete(self, output_path: str):
         self._encrypt_list.remove_item(output_path)

@@ -95,7 +95,7 @@ func_result read_block_from_file(LPCVOID const block_info, HANDLE event) {
         CloseHandle(overlapped.hEvent);
     }
 
-    return (func_result){read_bytes, 0};
+    return (func_result){(uint64_t)read_bytes, 0};
 }
 
 func_result write_metadata_to_file(

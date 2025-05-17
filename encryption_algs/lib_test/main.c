@@ -6,6 +6,8 @@
 #include "time.h"
 #include "magma.h"
 #include "magma-cbc.h"
+#include "magma-ctr.h"
+#include "magma-ecb.h"
 #include "stdint.h"
 
 int main() {
@@ -45,23 +47,23 @@ int main() {
 
     uint64_t curr = 0, total = 0;
     int result = 0;
-    // result = encrypt_magma_cbc(
-    //     L"../../../input.txt",
-    //     L"C:\\",
-    //     L"../../../input.txt",
-    //     magma_key,
-    //     1,
-    //     &curr,
-    //     &total
-    // );
+    result = encrypt_kyznechik_ctr(
+        L"../../../input.txt",
+        L"C:\\",
+        L"../../../middle.txt",
+        magma_key,
+        1,
+        &curr,
+        &total
+    );
 
     printf("%d\n", result);
     printf("%llu %llu\n", curr, total);
 
     result = decrypt_kyznechik_ctr(
-        L"E:/test",
-        L"E:\\",
-        L"E:/test",
+        L"../../../middle.txt",
+        L"C:\\",
+        L"../../../input.txt",
         magma_key,
         1,
         &curr,
