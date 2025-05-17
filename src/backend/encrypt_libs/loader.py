@@ -115,7 +115,7 @@ class Loader(metaclass=Singleton):
 
         KS = ctypes.POINTER(ctypes.POINTER(ctypes.c_uint8))()
 
-        self._extra_libs['magma_init']()  # todo подумать, что инит успел пройти
+        self._extra_libs['magma_init']()
         res = self._extra_libs['magma_generate_keys'](key, ctypes.byref(KS))
         if res != 0:
             raise AddTaskError  # Не сгенерил ключи
@@ -149,7 +149,7 @@ class Loader(metaclass=Singleton):
 
         KS = ctypes.POINTER(ctypes.POINTER(ctypes.c_uint8))()
 
-        self._extra_libs['kyznechik_init']()  # todo подумать, что инит успел пройти
+        self._extra_libs['kyznechik_init']()
         res = self._extra_libs['kyznechik_generate_keys'](key, ctypes.byref(KS))
         if res != 0:
             raise AddTaskError  # Не сгенерил ключи
@@ -312,9 +312,9 @@ class Loader(metaclass=Singleton):
 if __name__ == '__main__':
     loader = Loader()
     aboba = 'НАШ Слава Богу 🙏❤СЛАВА РОССИИ 🙏❤АНГЕЛА ХРАНИТЕЛЯ КАЖДОМУ ИЗ ВАС 🙏❤БОЖЕ ХРАНИ РОССИЮ 🙏❤СПАСИБО ВАМ НАШИ МАЛЬЧИКИ'.encode("utf-8")
-    aboba = aboba[:len(aboba) // 16 * 16]
+    aboba = aboba[:len(aboba) // 8 * 8]
     print(aboba.hex())
-    aboba = loader.micro_kyznechik('sosal', aboba, OperationType.ENCRYPT)
+    aboba = loader.micro_magma('sosal', aboba, OperationType.ENCRYPT)
     print(aboba.hex())
-    aboba = loader.micro_kyznechik('sosal', aboba, OperationType.DECRYPT)
-    print(aboba.hex())
+    aboba = loader.micro_magma('sosal', aboba, OperationType.DECRYPT)
+    print(aboba.decode('utf-8'))
