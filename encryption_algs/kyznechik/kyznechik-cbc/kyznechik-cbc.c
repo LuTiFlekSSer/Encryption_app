@@ -144,12 +144,8 @@ uint8_t kyznechik_cbc_work(
             return 1; // Ошибка при обработке файла
         }
 
-        if ((i + 1) % 256 == 0) {
-            *current_step += BUF_SIZE * 16;
-        }
+        *current_step += BUF_SIZE / 16;
     }
-
-    *current_step += BUF_SIZE / 16 * (total % 256);
 
     if (mod != 0) {
         input_file_info.offset = output_file_info.offset = total * BUF_SIZE;
@@ -221,7 +217,7 @@ uint8_t encrypt_kyznechik_cbc(
     uint8_t const mod = file_size.result % 16, after_file[2] = {KYZNECHIK, CBC};
     uint32_t const meta_size = 20 + M;
     uint8_t *metadata = calloc(meta_size, sizeof(uint8_t));
-    metadata[0] = 1;
+    metadata[0] = 128;
 
     if (mod != 0) {
         func_result const f_result = read_block_from_file(
@@ -240,7 +236,7 @@ uint8_t encrypt_kyznechik_cbc(
             return 6; // Не удалось считать метаданные
         }
 
-        metadata[mod] = 1;
+        metadata[mod] = 128;
     }
 
     uint8_t *initial_vector = malloc(M * sizeof(uint8_t));
@@ -338,7 +334,7 @@ uint8_t remove_last_bytes(file_block_info const *block_info) {
     }
 
     uint8_t strip_size = 0;
-    while (block_info->data[15 - strip_size] != 1) {
+    while (block_info->data[15 - strip_size] != 128) {
         ++strip_size;
     }
 

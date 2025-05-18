@@ -94,16 +94,11 @@ DWORD WINAPI kyznechik_ctr_thread(LPVOID raw_data) {
             return 1; // Ошибка при обработке файла
         }
 
-        if ((i + 1) % 256 == 0) {
-            EnterCriticalSection(data->lock);
-            (*data->current_step) += BUF_SIZE * data->s_data->CIPHER_BLOCK_SIZE;
-            LeaveCriticalSection(data->lock);
-        }
+        EnterCriticalSection(data->lock);
+        (*data->current_step) += BUF_SIZE / data->s_data->CIPHER_BLOCK_SIZE;
+        LeaveCriticalSection(data->lock);
     }
 
-    EnterCriticalSection(data->lock);
-    (*data->current_step) += BUF_SIZE / data->s_data->CIPHER_BLOCK_SIZE * (total % 256);
-    LeaveCriticalSection(data->lock);
 
     if (mod != 0) {
         if (*(data->error) != 0) {
@@ -112,8 +107,7 @@ DWORD WINAPI kyznechik_ctr_thread(LPVOID raw_data) {
             return 1; // Ошибка при обработке файла
         }
 
-        input_file_info.offset = output_file_info.offset = total * BUF_SIZE + data->start * data->s_data->
-            CIPHER_BLOCK_SIZE;
+        input_file_info.offset = output_file_info.offset = total * BUF_SIZE + data->start * data->s_data->CIPHER_BLOCK_SIZE;
         input_file_info.data_size = output_file_info.data_size = mod;
 
         if (process_block((const uint8_t**)data->Ks,

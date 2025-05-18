@@ -144,12 +144,8 @@ uint8_t magma_cbc_work(
             return 1; // Ошибка при обработке файла
         }
 
-        if ((i + 1) % 512 == 0) {
-            *current_step += BUF_SIZE * 64;
-        }
+        *current_step += BUF_SIZE / 8;
     }
-
-    *current_step += BUF_SIZE / 8 * (total % 512);
 
     if (mod != 0) {
         input_file_info.offset = output_file_info.offset = total * BUF_SIZE;
@@ -221,7 +217,7 @@ uint8_t encrypt_magma_cbc(
     uint8_t const mod = file_size.result % 8, after_file[2] = {MAGMA, CBC};
     uint32_t const meta_size = 12 + M;
     uint8_t *metadata = calloc(meta_size, sizeof(uint8_t));
-    metadata[0] = 1;
+    metadata[0] = 128;
 
     if (mod != 0) {
         func_result const f_result = read_block_from_file(
@@ -240,7 +236,7 @@ uint8_t encrypt_magma_cbc(
             return 6; // Не удалось считать метаданные
         }
 
-        metadata[mod] = 1;
+        metadata[mod] = 128;
     }
 
     uint8_t *initial_vector = malloc(M * sizeof(uint8_t));
@@ -338,7 +334,7 @@ uint8_t remove_last_bytes(file_block_info const *block_info) {
     }
 
     uint8_t strip_size = 0;
-    while (block_info->data[7 - strip_size] != 1) {
+    while (block_info->data[7 - strip_size] != 128) {
         ++strip_size;
     }
 

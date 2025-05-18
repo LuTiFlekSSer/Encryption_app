@@ -6,11 +6,11 @@
 #include "magma.h"
 #include "utils.h"
 
-char* get_cipher_name(){
+char* get_cipher_name() {
     return "magma";
 }
 
-char* get_mode_name(){
+char* get_mode_name() {
     return "ecb";
 }
 
@@ -83,16 +83,10 @@ DWORD WINAPI magma_ecb_thread(LPVOID raw_data) {
             return 1; // Ошибка при обработке файла
         }
 
-        if ((i + 1) % 512 == 0) {
-            EnterCriticalSection(data->lock);
-            (*data->current_step) += BUF_SIZE * 64;
-            LeaveCriticalSection(data->lock);
-        }
+        EnterCriticalSection(data->lock);
+        (*data->current_step) += BUF_SIZE / 8;
+        LeaveCriticalSection(data->lock);
     }
-
-    EnterCriticalSection(data->lock);
-    (*data->current_step) += BUF_SIZE / 8 * (total % 512);
-    LeaveCriticalSection(data->lock);
 
     if (mod != 0) {
         if (*(data->error) != 0) {
@@ -168,7 +162,7 @@ uint8_t encrypt_magma_ecb(
 
     uint8_t const mod = file_size.result % 8,
                   after_file[2] = {MAGMA, ECB};
-    uint8_t delta[8] = {1};
+    uint8_t delta[8] = {128};
 
     if (mod != 0) {
         func_result const f_result = read_block_from_file(
@@ -186,7 +180,7 @@ uint8_t encrypt_magma_ecb(
             return 6; // Не удалось считать метаданные
         }
 
-        delta[mod] = 1;
+        delta[mod] = 128;
     }
 
     *total_steps = file_size.result / 8;
@@ -307,7 +301,7 @@ uint8_t remove_last_bytes(file_block_info const *block_info) {
     }
 
     uint8_t strip_size = 0;
-    while (block_info->data[7 - strip_size] != 1) {
+    while (block_info->data[7 - strip_size] != 128) {
         ++strip_size;
     }
 
