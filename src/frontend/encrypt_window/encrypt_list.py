@@ -2,6 +2,7 @@ import os
 import time
 from pathlib import Path
 from threading import Lock
+from typing import Tuple
 
 from PyQt5.QtCore import Qt, pyqtSignal, QObject, QProcess, QTimer
 from PyQt5.QtGui import QFontMetrics, QColor
@@ -15,7 +16,7 @@ from src.backend.db.db_records import OperationType, HistoryRecord
 from src.backend.encrypt_libs.encrypt_lib import EncryptResult
 from src.backend.encrypt_libs.errors import SignatureError
 from src.backend.encrypt_libs.loader import Loader
-from src.frontend.icons.icons import LockIcons
+from src.frontend.icons.icons import CustomIcons
 from src.frontend.paged_list_view import PagedListView
 from src.frontend.sub_windows.file_adder_window.file_adder_window import TEncryptData, Status
 from src.locales.locales import Locales
@@ -32,8 +33,6 @@ map_status_to_value: dict[Status, str] = {
 
 
 # todo при расшифровке сделать сообщение, что такого режима нет
-# todo info bar при нажатии на карточку с подробным описанием ошибки или открыть результат
-# todo оставшееся время
 
 class Events(QObject):
     sig_delete: pyqtSignal = pyqtSignal(str)
@@ -80,27 +79,33 @@ class StatusWidget(QWidget):
         super().__init__(parent=parent)
 
         self._v_layout: QVBoxLayout = QVBoxLayout(self)
-        self._l_status: StrongBodyLabel = StrongBodyLabel(self)
-        self._l_eta: CaptionLabel = CaptionLabel(self)
+        self.l_status: StrongBodyLabel = StrongBodyLabel(self)
+        self.l_eta: CaptionLabel = CaptionLabel(self)
         self._locales: Locales = Locales()
+        self._alpha: float = Config.PROGRESS_ALPHA
+
+        self._eta: str = ''
+        self._status: str = ''
+        self._lock: Lock = Lock()
 
         self.__init_widgets()
 
     def __init_widgets(self):
         self._v_layout.setContentsMargins(0, 0, 0, 0)
         self._v_layout.setSpacing(0)
-        self._v_layout.setAlignment(Qt.AlignVCenter)
+        self._v_layout.setAlignment(Qt.AlignVCenter | Qt.AlignLeft)
 
-        self._l_status.setTextColor(QColor(Config.GRAY_COLOR_900), QColor(Config.GRAY_COLOR_50))
-        self._l_eta.setTextColor(QColor(Config.GRAY_COLOR_700), QColor(Config.GRAY_COLOR_200))
+        self.l_status.setTextColor(QColor(Config.GRAY_COLOR_900), QColor(Config.GRAY_COLOR_50))
+        self.l_eta.setTextColor(QColor(Config.GRAY_COLOR_700), QColor(Config.GRAY_COLOR_200))
 
-        self._v_layout.addWidget(self._l_status)
-        self._l_eta.setVisible(False)
+        self._v_layout.addWidget(self.l_status)
+        self.l_eta.setVisible(False)
 
     def set_status(self, status: str):
-        self._l_status.setText(status)
+        self._status = status
+        self.update_text()
 
-    def format_eta(self, seconds: float) -> str:
+    def _format_eta(self, seconds: float) -> str:
         years, seconds = divmod(seconds, 31536000)
         months, seconds = divmod(seconds, 2592000)
         days, seconds = divmod(seconds, 86400)
@@ -117,23 +122,53 @@ class StatusWidget(QWidget):
         else:
             return f'{int(hours):02}:{int(minutes):02}:{int(seconds):02}'
 
-    def update_eta(self, status: Status, current: int, total: int, start_time: float):
+    def update_eta(self,
+                   status: Status,
+                   current: int,
+                   total: int,
+                   start_time: float,
+                   estimated_time_per_step: float,
+                   last_eta_update: float) -> Tuple[float, float]:
         match status:
             case Status.IN_PROGRESS:
-                self._v_layout.addWidget(self._l_eta)
-                self._l_eta.setVisible(True)
-                try:
-                    elapsed_time = (time.time() - start_time) / current * (total - current)
-                    eta = self.format_eta(elapsed_time)
-                except ZeroDivisionError:
-                    eta = '--------'
+                self._v_layout.addWidget(self.l_eta)
+                self.l_eta.setVisible(True)
 
-                self._l_eta.setText('ETA: ' + eta)
+                if (lt := time.time()) - last_eta_update > Config.PROGRESS_INTERVAL:
+                    last_eta_update = lt
+                    try:
+                        average_time_per_step = (lt - start_time) / current
+
+                        if estimated_time_per_step is None:
+                            estimated_time_per_step = average_time_per_step
+                        else:
+                            estimated_time_per_step = (
+                                    self._alpha * average_time_per_step +
+                                    (1 - self._alpha) * estimated_time_per_step
+                            )
+
+                        remaining_steps = total - current
+                        elapsed_time = estimated_time_per_step * remaining_steps
+
+                        eta = self._format_eta(elapsed_time)
+                    except ZeroDivisionError:
+                        eta = '--------'
+
+                    self._eta = 'ETA: ' + eta
+
+                    self.update_text()
 
             case _:
-                if self._l_eta.isVisible():
-                    self._v_layout.removeWidget(self._l_eta)
-                    self._l_eta.setVisible(False)
+                if self.l_eta.isVisible():
+                    self._v_layout.removeWidget(self.l_eta)
+                    self.l_eta.setVisible(False)
+
+        return estimated_time_per_step, last_eta_update
+
+    def update_text(self):
+        with self._lock:
+            EncryptCard.set_elided_text(self.l_eta, self._eta)
+            EncryptCard.set_elided_text(self.l_status, self._status)
 
 
 class EncryptCard(CardWidget):
@@ -263,10 +298,10 @@ class EncryptCard(CardWidget):
         self._v_layout_output.addWidget(self._l_path_output)
 
         self._h_layout.addWidget(self._l_size)
-        self._h_layout.addWidget(self._op_icon, alignment=Qt.AlignRight)
-        self._h_layout.addWidget(self._l_mode, alignment=Qt.AlignRight)
+        self._h_layout.addWidget(self._op_icon)
+        self._h_layout.addWidget(self._l_mode)
         self._h_layout.addWidget(self._pw_progress, alignment=Qt.AlignRight)
-        self._h_layout.addWidget(self._w_status, alignment=Qt.AlignRight)
+        self._h_layout.addWidget(self._w_status)
 
         self._h_layout.addWidget(self._btn_delete, alignment=Qt.AlignRight)
 
@@ -285,7 +320,7 @@ class EncryptCard(CardWidget):
 
         self._l_mode.setText(data['mode'])
 
-        icon = LockIcons.LOCK if data['operation'] == OperationType.ENCRYPT else LockIcons.UNLOCK
+        icon = CustomIcons.LOCK if data['operation'] == OperationType.ENCRYPT else CustomIcons.UNLOCK
         icon = icon.colored(QColor(Config.GRAY_COLOR_900), QColor(Config.GRAY_COLOR_50))
         self._op_icon.setIcon(icon)
 
@@ -302,6 +337,10 @@ class EncryptCard(CardWidget):
                     self._pw_progress.resume()
                     data['status'] = Status.IN_PROGRESS
                     self._pw_progress.setValue(int(data['current'] / data['total'] * 100))
+                else:
+                    self._pw_progress.setValue(0)
+                    self._pw_progress.resume()
+
             case Status.IN_PROGRESS:
                 self._btn_delete.setEnabled(False)
 
@@ -313,7 +352,14 @@ class EncryptCard(CardWidget):
                 self._pw_progress.setValue(100)
 
         self._w_status.set_status(map_status_to_value[data['status']])
-        self._w_status.update_eta(data['status'], data['current'], data['total'], data['start_time'])
+        data['estimated_time_per_step'], data['last_eta_update'] = self._w_status.update_eta(
+            data['status'],
+            data['current'],
+            data['total'],
+            data['start_time'],
+            data['estimated_time_per_step'],
+            data['last_eta_update']
+        )
 
         self._update_text()
 
@@ -325,22 +371,25 @@ class EncryptCard(CardWidget):
         if self._output_path == '':
             return
         max_width = int((self.width() - self._file_icon.width() - self._op_icon.width() - self._pw_progress.width()
-                         - self._w_status.width() - self._btn_delete.width() - self._l_mode.width()
-                         - 10 * self._h_layout.spacing()) / 3)
+                         - self._btn_delete.width() - self._l_mode.width() - 10 * self._h_layout.spacing()) / 4)
         self._l_name_input.setMaximumWidth(max_width)
         self._l_name_output.setMaximumWidth(max_width)
         self._l_path_input.setMaximumWidth(max_width)
         self._l_path_output.setMaximumWidth(max_width)
         self._l_size.setMaximumWidth(max_width)
+        self._w_status.setMaximumWidth(max_width)
+        self._w_status.l_eta.setMaximumWidth(max_width)
+        self._w_status.l_status.setMaximumWidth(max_width)
 
-        self._set_elided_text(self._l_name_input, Path(self._input_path).name)
-        self._set_elided_text(self._l_name_output, Path(self._output_path).name)
-        self._set_elided_text(self._l_path_input, self._input_path)
-        self._set_elided_text(self._l_path_output, self._output_path)
-        self._set_elided_text(self._l_size, self._file_size)
+        self._w_status.update_text()
+        self.set_elided_text(self._l_name_input, Path(self._input_path).name)
+        self.set_elided_text(self._l_name_output, Path(self._output_path).name)
+        self.set_elided_text(self._l_path_input, self._input_path)
+        self.set_elided_text(self._l_path_output, self._output_path)
+        self.set_elided_text(self._l_size, self._file_size)
 
     @staticmethod
-    def _set_elided_text(label: QLabel, text: str):
+    def set_elided_text(label: QLabel, text: str):
         metrics = QFontMetrics(label.font())
         elided = metrics.elidedText(text, Qt.ElideMiddle, label.maximumWidth())
         label.setText(elided)
@@ -364,7 +413,7 @@ class EncryptList(SimpleCardWidget):
         self.__init_widgets()
         self._connect_widget_actions()
 
-        file = 'F:\\test'
+        file = 'E:\\test'
         QTimer.singleShot(5000, lambda: self._add_task(
             {
                 'uid': 'u8i92wr43uy9terwuhigfsdrrgeujihsgerfdkbjdh',
@@ -379,28 +428,32 @@ class EncryptList(SimpleCardWidget):
                 'file_size': get_normalized_size(self._locales, os.path.getsize(file)),
                 'file_icon': get_file_icon(file),
                 'status_description': '',
-                'start_time': 0
+                'start_time': 0,
+                'estimated_time_per_step': None,
+                'last_eta_update': 0
             }
         ))
 
-        # QTimer.singleShot(6000, lambda: self._add_task(
-        #     {
-        #         'uid': 'u8i92wr43uy9terwuhigfsdrujihsgerfdkbjdh',
-        #         'input_file': "C:\\Users\\boris\\Downloads\\input.txt",
-        #         'output_file': "C:\\Users\\boris\\Downloads\\input.txt",
-        #         'mode': 'kyznechik-ctr',
-        #         'operation': OperationType.ENCRYPT,
-        #         'total': 1,
-        #         'current': -228,
-        #         'status': Status.WAITING,
-        #         'hash_password': 'oral_cumshot',
-        #         'file_size': get_normalized_size(self._locales,
-        #                                          os.path.getsize("C:\\Users\\boris\\Downloads\\input.txt")),
-        #         'file_icon': get_file_icon("C:\\Users\\boris\\Downloads\\input.txt"),
-        #         'status_description': '',
-        #         'start_time': 0
-        #     }
-        # ))
+        file1 = 'F:\\test'
+        QTimer.singleShot(6000, lambda: self._add_task(
+            {
+                'uid': 'u8i92wr43uy9terwuhigfsdrrgeuhsgerfdkbjdh',
+                'input_file': file1,
+                'output_file': file1,
+                'mode': 'magma-cbc',
+                'operation': OperationType.ENCRYPT,
+                'total': 1,
+                'current': -228,
+                'status': Status.WAITING,
+                'hash_password': 'oral_cumshot',
+                'file_size': get_normalized_size(self._locales, os.path.getsize(file1)),
+                'file_icon': get_file_icon(file1),
+                'status_description': '',
+                'start_time': 0,
+                'estimated_time_per_step': None,
+                'last_eta_update': 0
+            }
+        ))
 
     def _on_delete(self, output_path: str):
         self._encrypt_list.remove_item(output_path)
@@ -411,8 +464,9 @@ class EncryptList(SimpleCardWidget):
         self._loader.events.sig_update_progress.connect(self._on_update_progress)
         self._loader.events.sig_update_status.connect(self._on_update_status)
         self._loader.events.sig_update.connect(self._on_update)
+        self._loader.events.sig_task_start.connect(self._on_sig_task_start)
 
-    def _on_task_start(self, key: str, start_time: float):
+    def _on_sig_task_start(self, key: str, start_time: float):
         self._encrypt_list.items_dict[key]['start_time'] = start_time
 
     def _on_update(self):

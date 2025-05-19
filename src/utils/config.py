@@ -4,8 +4,9 @@ from typing import Literal, Callable
 
 from src.utils.singleton import Singleton
 
-TExtraFunc = Literal['read_cipher_from_file', 'magma_init', 'magma_generate_keys', 'magma_finalize', 'magma_encrypt_data', 'magma_decrypt_data',
-'kyznechik_init', 'kyznechik_generate_keys', 'kyznechik_encrypt_data', 'kyznechik_decrypt_data', 'kyznechik_finalize']
+TExtraFunc = Literal[
+    'read_cipher_from_file', 'magma_init', 'magma_generate_keys', 'magma_finalize', 'magma_encrypt_data', 'magma_decrypt_data',
+    'kyznechik_init', 'kyznechik_generate_keys', 'kyznechik_encrypt_data', 'kyznechik_decrypt_data', 'kyznechik_finalize']
 
 
 class Config(metaclass=Singleton):
@@ -26,15 +27,21 @@ class Config(metaclass=Singleton):
     EXTRA_FUNCS: dict[TExtraFunc, Callable] = {
         'read_cipher_from_file': ctypes.CFUNCTYPE(ctypes.c_uint8, ctypes.c_wchar_p, ctypes.c_char_p),
         'magma_init': ctypes.CFUNCTYPE(None),
-        'magma_generate_keys': ctypes.CFUNCTYPE(ctypes.c_int, ctypes.POINTER(ctypes.c_uint8), ctypes.POINTER(ctypes.POINTER(ctypes.POINTER(ctypes.c_uint8)))),
+        'magma_generate_keys': ctypes.CFUNCTYPE(ctypes.c_int, ctypes.POINTER(ctypes.c_uint8),
+                                                ctypes.POINTER(ctypes.POINTER(ctypes.POINTER(ctypes.c_uint8)))),
         'magma_finalize': ctypes.CFUNCTYPE(None, ctypes.POINTER(ctypes.POINTER(ctypes.c_uint8))),
-        'magma_encrypt_data': ctypes.CFUNCTYPE(None, ctypes.POINTER(ctypes.POINTER(ctypes.c_uint8)), ctypes.POINTER(ctypes.c_uint8), ctypes.POINTER(ctypes.c_uint8)),
-        'magma_decrypt_data': ctypes.CFUNCTYPE(None, ctypes.POINTER(ctypes.POINTER(ctypes.c_uint8)), ctypes.POINTER(ctypes.c_uint8), ctypes.POINTER(ctypes.c_uint8)),
+        'magma_encrypt_data': ctypes.CFUNCTYPE(None, ctypes.POINTER(ctypes.POINTER(ctypes.c_uint8)),
+                                               ctypes.POINTER(ctypes.c_uint8), ctypes.POINTER(ctypes.c_uint8)),
+        'magma_decrypt_data': ctypes.CFUNCTYPE(None, ctypes.POINTER(ctypes.POINTER(ctypes.c_uint8)),
+                                               ctypes.POINTER(ctypes.c_uint8), ctypes.POINTER(ctypes.c_uint8)),
         'kyznechik_init': ctypes.CFUNCTYPE(None),
-        'kyznechik_generate_keys': ctypes.CFUNCTYPE(ctypes.c_int, ctypes.POINTER(ctypes.c_uint8), ctypes.POINTER(ctypes.POINTER(ctypes.POINTER(ctypes.c_uint8)))),
+        'kyznechik_generate_keys': ctypes.CFUNCTYPE(ctypes.c_int, ctypes.POINTER(ctypes.c_uint8),
+                                                    ctypes.POINTER(ctypes.POINTER(ctypes.POINTER(ctypes.c_uint8)))),
         'kyznechik_finalize': ctypes.CFUNCTYPE(None, ctypes.POINTER(ctypes.POINTER(ctypes.c_uint8))),
-        'kyznechik_encrypt_data': ctypes.CFUNCTYPE(None, ctypes.POINTER(ctypes.POINTER(ctypes.c_uint8)), ctypes.POINTER(ctypes.c_uint8), ctypes.POINTER(ctypes.c_uint8)),
-        'kyznechik_decrypt_data': ctypes.CFUNCTYPE(None, ctypes.POINTER(ctypes.POINTER(ctypes.c_uint8)), ctypes.POINTER(ctypes.c_uint8), ctypes.POINTER(ctypes.c_uint8))
+        'kyznechik_encrypt_data': ctypes.CFUNCTYPE(None, ctypes.POINTER(ctypes.POINTER(ctypes.c_uint8)),
+                                                   ctypes.POINTER(ctypes.c_uint8), ctypes.POINTER(ctypes.c_uint8)),
+        'kyznechik_decrypt_data': ctypes.CFUNCTYPE(None, ctypes.POINTER(ctypes.POINTER(ctypes.c_uint8)),
+                                                   ctypes.POINTER(ctypes.c_uint8), ctypes.POINTER(ctypes.c_uint8))
     }
 
     GRAY_COLOR_50 = '#F3F3F3'
@@ -50,3 +57,5 @@ class Config(metaclass=Singleton):
 
     THREAD_SLEEP = 0.01
     UPDATE_INTERVAL = 0.1
+    PROGRESS_INTERVAL = 1
+    PROGRESS_ALPHA = 0.8

@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import TypedDict
+from typing import TypedDict, Optional
 
 from PyQt5.QtGui import QIcon
 
@@ -26,5 +26,7 @@ TEncryptData = TypedDict('TEncryptData', {
     'file_size': str,
     'file_icon': QIcon,
     'status_description': str,
-    'start_time': float
+    'start_time': float,
+    'estimated_time_per_step': Optional[float],
+    'last_eta_update': float
 })

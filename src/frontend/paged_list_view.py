@@ -31,6 +31,7 @@ class PagedListView(QWidget):
         self._scroll_area: QScrollArea = QScrollArea(self)
         self._scroll_area.setWidgetResizable(True)
         self._scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self._scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self._layout.addWidget(self._scroll_area)
 
         self._container: QWidget = QWidget(self)

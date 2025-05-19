@@ -11,7 +11,7 @@ from qfluentwidgets import SimpleCardWidget, PipsPager, PipsScrollButtonDisplayM
 
 from src.backend.db.data_base import DataBase
 from src.backend.db.db_records import HistoryRecord, OperationType
-from src.frontend.icons.icons import LockIcons
+from src.frontend.icons.icons import CustomIcons
 from src.frontend.paged_list_view import PagedListView
 from src.frontend.sub_windows.message_box import MessageBox
 from src.locales.locales import Locales
@@ -141,7 +141,7 @@ class HistoryCard(CardWidget):
         self._set_elided_text(self._l_path_output, self._output_path)
         self._set_elided_text(self._l_mode, self._mode)
 
-        icon = LockIcons.LOCK if data.operation == OperationType.ENCRYPT else LockIcons.UNLOCK
+        icon = CustomIcons.LOCK if data.operation == OperationType.ENCRYPT else CustomIcons.UNLOCK
         icon = icon.colored(QColor(Config.GRAY_COLOR_900), QColor(Config.GRAY_COLOR_50))
         self._op_icon.setIcon(icon)
 

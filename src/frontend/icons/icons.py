@@ -3,9 +3,10 @@ from enum import Enum
 from qfluentwidgets import FluentIconBase, Theme
 
 
-class LockIcons(FluentIconBase, Enum):
+class CustomIcons(FluentIconBase, Enum):
     LOCK = 'lock'
     UNLOCK = 'unlock'
+    KEY = 'key'
 
     def path(self, theme=Theme.AUTO):
         return f'res/{self.value}.svg'
