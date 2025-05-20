@@ -1,7 +1,7 @@
 import sys
 import time
 
-from PyQt5.QtCore import QSize, QEventLoop, QTimer, Qt
+from PyQt5.QtCore import QSize, QEventLoop, QTimer, Qt, pyqtSignal
 from PyQt5.QtGui import QIcon, QGuiApplication
 from PyQt5.QtWidgets import QApplication
 from qfluentwidgets import SplashScreen, FluentIcon, MSFluentWindow, NavigationItemPosition, setTheme, Theme, \
@@ -12,6 +12,8 @@ from src.backend.db.data_base import DataBase
 from src.frontend.encrypt_window.encrypt_window import EncryptWindow
 from src.frontend.history_window.history_window import HistoryWindow
 from src.frontend.home_window.home_window import HomeWindow
+from src.frontend.icons.icons import CustomIcons
+from src.frontend.passwords_window.passwords_window import PasswordsWindow
 from src.frontend.settings_window.settings_window import SettingsWindow
 from src.global_flags import GlobalFlags
 from src.locales.locales import Locales
@@ -19,7 +21,10 @@ from src.utils.config import Config
 from src.utils.utils import resource_path
 
 
+# todo при запуске шифрования проверить, что библиотеки не удалили, если удалили -> функция из passwords_window
 class MainWindow(MSFluentWindow):
+    sig_check_passwords: pyqtSignal = pyqtSignal(bool)
+
     def __init__(self, app: QApplication):
         super().__init__()
 
@@ -68,6 +73,9 @@ class MainWindow(MSFluentWindow):
 
         self._encrypt_window = EncryptWindow(self._locales.get_string('encrypt'), parent=self)
         self.addSubInterface(self._encrypt_window, FluentIcon.VPN, self._locales.get_string('encrypt'))
+
+        self._passwords_window = PasswordsWindow(self._locales.get_string('passwords'), parent=self)
+        self.addSubInterface(self._passwords_window, CustomIcons.KEY, self._locales.get_string('passwords'))
 
         self._history_window = HistoryWindow(self._locales.get_string('history'), parent=self)
         self.addSubInterface(self._history_window, FluentIcon.HISTORY, self._locales.get_string('history'))

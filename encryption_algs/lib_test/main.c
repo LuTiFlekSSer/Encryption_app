@@ -24,51 +24,35 @@ int main() {
                   };
 
 
-    kyznechik_init();
-    magma_init();
-
-    clock_t start, end;
-    double seconds;
-    int const iters = 3;
     uint64_t curr = 0, total = 0;
     int result = 0;
 
-    start = clock();
-    for (int i = 0; i < iters; ++i) {
-        result = encrypt_kyznechik_ecb(
-            L"../../../input.txt",
-            L"C:\\",
-            L"../../../middle.txt",
-            kyznechik_key,
-            6,
-            &curr,
-            &total
-        );
-    }
-    end = clock();
-    seconds = (double)(end - start) / CLOCKS_PER_SEC;
+    result = encrypt_kyznechik_ctr(
+        L"../../../input.txt",
+        L"C:\\",
+        L"../../../output.txt",
+        kyznechik_key,
+        6,
+        &curr,
+        &total
+    );
+
     printf("%d\n", result);
     printf("%llu %llu\n", curr, total);
-    printf("ENC %lf MB/s\n", (double)16 * iters / seconds / 1024 / 1024);
+
+    // result = decrypt_kyznechik_ctr(
+    //     L"../../../output.txt",
+    //     L"C:\\",
+    //     L"../../../middle.txt",
+    //     magma_key,
+    //     6,
+    //     &curr,
+    //     &total
+    // );
 
 
-    start = clock();
-    for (int i = 0; i < iters; ++i) {
-        result = decrypt_kyznechik_ecb(
-            L"../../../middle.txt",
-            L"C:\\",
-            L"../../../input.txt",
-            kyznechik_key,
-            6,
-            &curr,
-            &total
-        );
-    }
-    end = clock();
-    seconds = (double)(end - start) / CLOCKS_PER_SEC;
     printf("%d\n", result);
     printf("%llu %llu\n", curr, total);
-    printf("DEC %lf MB/s", (double)16 * iters / seconds / 1024 / 1024);
 
     return 0;
 }

@@ -1,10 +1,13 @@
 import os
+import pathlib
 import sys
+import tempfile
 from os import PathLike
 
 from PyQt5.QtCore import QFileInfo, QSize
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QWidget, QFileIconProvider
+from qfluentwidgets import MSFluentWindow
 
 
 def get_normalized_size(locales, size: int) -> str:
@@ -22,7 +25,11 @@ def get_normalized_size(locales, size: int) -> str:
 
 
 def get_file_icon(file_path: str, size: QSize = QSize(128, 128)) -> QIcon:
-    # todo получать картинку не от конкретного файла, а от типа файла
+    suffix = pathlib.Path(file_path).suffix
+
+    with tempfile.NamedTemporaryFile(suffix=suffix) as tmp_file:
+        file_path = tmp_file.name
+
     file_info = QFileInfo(file_path)
     provider = QFileIconProvider()
     icon = provider.icon(file_info)
@@ -42,11 +49,11 @@ def resource_path(relative_path: str | PathLike[str]) -> str:
     return os.path.join(base_path, relative_path)
 
 
-def find_mega_parent(widget: QWidget) -> QWidget:
+def find_mega_parent(widget: QWidget) -> MSFluentWindow | QWidget:
     tmp_widget = widget
 
     while True:
-        if isinstance(tmp_widget, QWidget):
+        if isinstance(tmp_widget, MSFluentWindow):
             if hasattr(tmp_widget, 'ULTRA_MEGA_PARENT'):
                 return tmp_widget
 

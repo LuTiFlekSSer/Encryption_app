@@ -1,4 +1,5 @@
 import os
+import pathlib
 import time
 from pathlib import Path
 from threading import Lock
@@ -8,13 +9,13 @@ from PyQt5.QtCore import Qt, pyqtSignal, QObject, QProcess, QTimer
 from PyQt5.QtGui import QFontMetrics, QColor
 from PyQt5.QtWidgets import QSizePolicy, QVBoxLayout, QLabel, QHBoxLayout, QWidget
 from qfluentwidgets import CardWidget, SimpleCardWidget, PipsPager, PipsScrollButtonDisplayMode, IconWidget, \
-    StrongBodyLabel, CaptionLabel, ProgressBar, ToolButton, FluentIcon, InfoBar, InfoBarPosition, BodyLabel, \
+    StrongBodyLabel, CaptionLabel, ProgressBar, ToolButton, FluentIcon, BodyLabel, \
     InfoBarIcon, TeachingTipView, PopupTeachingTip
 
 from src.backend.db.data_base import DataBase
 from src.backend.db.db_records import OperationType, HistoryRecord
 from src.backend.encrypt_libs.encrypt_lib import EncryptResult
-from src.backend.encrypt_libs.errors import SignatureError
+from src.backend.encrypt_libs.errors import SignatureError, FunctionNotFoundError
 from src.backend.encrypt_libs.loader import Loader
 from src.frontend.icons.icons import CustomIcons
 from src.frontend.paged_list_view import PagedListView
@@ -31,8 +32,6 @@ map_status_to_value: dict[Status, str] = {
     Status.FAILED: locales.get_string('failed'),
 }
 
-
-# todo при расшифровке сделать сообщение, что такого режима нет
 
 class Events(QObject):
     sig_delete: pyqtSignal = pyqtSignal(str)
@@ -348,7 +347,7 @@ class EncryptCard(CardWidget):
                 self._pw_progress.setValue(int(data['current'] / data['total'] * 100))
             case Status.COMPLETED:
                 self._btn_delete.setEnabled(True)
-
+                self._pw_progress.resume()
                 self._pw_progress.setValue(100)
 
         self._w_status.set_status(map_status_to_value[data['status']])
@@ -413,47 +412,49 @@ class EncryptList(SimpleCardWidget):
         self.__init_widgets()
         self._connect_widget_actions()
 
-        file = 'E:\\test'
-        QTimer.singleShot(5000, lambda: self._add_task(
-            {
-                'uid': 'u8i92wr43uy9terwuhigfsdrrgeujihsgerfdkbjdh',
-                'input_file': file,
-                'output_file': file,
-                'mode': 'kyznechik-ctr',
-                'operation': OperationType.ENCRYPT,
-                'total': 1,
-                'current': -228,
-                'status': Status.WAITING,
-                'hash_password': 'oral_cumshot',
-                'file_size': get_normalized_size(self._locales, os.path.getsize(file)),
-                'file_icon': get_file_icon(file),
-                'status_description': '',
-                'start_time': 0,
-                'estimated_time_per_step': None,
-                'last_eta_update': 0
-            }
-        ))
-
-        file1 = 'F:\\test'
-        QTimer.singleShot(6000, lambda: self._add_task(
-            {
-                'uid': 'u8i92wr43uy9terwuhigfsdrrgeuhsgerfdkbjdh',
-                'input_file': file1,
-                'output_file': file1,
-                'mode': 'magma-cbc',
-                'operation': OperationType.ENCRYPT,
-                'total': 1,
-                'current': -228,
-                'status': Status.WAITING,
-                'hash_password': 'oral_cumshot',
-                'file_size': get_normalized_size(self._locales, os.path.getsize(file1)),
-                'file_icon': get_file_icon(file1),
-                'status_description': '',
-                'start_time': 0,
-                'estimated_time_per_step': None,
-                'last_eta_update': 0
-            }
-        ))
+        # file = 'F:/test'
+        # file228 = 'F:/test'
+        # file1488 = 'F:/test'
+        # QTimer.singleShot(5000, lambda: self._add_task(
+        #     {
+        #         'uid': 'u8i92wr43uy9terwuhigfsdrrgeujihsgerfdkbjdh',
+        #         'input_file': file,
+        #         'output_file': file228,
+        #         'mode': 'kyznechik-ctr',
+        #         'operation': OperationType.ENCRYPT,
+        #         'total': 1,
+        #         'current': -228,
+        #         'status': Status.WAITING,
+        #         'hash_password': 'oral_cumshot',
+        #         'file_size': get_normalized_size(self._locales, os.path.getsize(file)),
+        #         'file_icon': get_file_icon(file),
+        #         'status_description': '',
+        #         'start_time': 0,
+        #         'estimated_time_per_step': None,
+        #         'last_eta_update': 0
+        #     }
+        # ))
+        #
+        # # todo сначала получать размер из loader'a
+        # QTimer.singleShot(7000, lambda: self._add_task(
+        #     {
+        #         'uid': 'u8i92wr43uy9terwuhigfsdrrgeuhsgerfdkbjdh',
+        #         'input_file': file228 + '1',
+        #         'output_file': file1488 + '1',
+        #         'mode': 'kyznechik-ctr',
+        #         'operation': OperationType.DECRYPT,
+        #         'total': 1,
+        #         'current': -228,
+        #         'status': Status.WAITING,
+        #         'hash_password': 'oral_cumshot',
+        #         'file_size': get_normalized_size(self._locales, pathlib.Path(file228 + '1').stat().st_size),
+        #         'file_icon': get_file_icon(file228 + '1'),
+        #         'status_description': '',
+        #         'start_time': 0,
+        #         'estimated_time_per_step': None,
+        #         'last_eta_update': 0
+        #     }
+        # ))
 
     def _on_delete(self, output_path: str):
         self._encrypt_list.remove_item(output_path)
@@ -529,15 +530,8 @@ class EncryptList(SimpleCardWidget):
                     )
 
         except SignatureError:
-            InfoBar.error(
-                title=self._locales.get_string('error'),
-                content=self._locales.get_string('signature_error'),
-                duration=-1,
-                parent=self._hmi,
-                position=InfoBarPosition.BOTTOM_RIGHT
-            )
-
             data['status'] = Status.FAILED
+            data['status_description'] = 'signature_error'
             self._encrypt_list.add_item(data['uid'], data)
 
             record = HistoryRecord()
@@ -551,16 +545,26 @@ class EncryptList(SimpleCardWidget):
 
             self._db.add_history_record(record)
 
-        except Exception as e:
-            InfoBar.error(
-                title=self._locales.get_string('error'),
-                content=self._locales.get_string('work_error'),
-                duration=-1,
-                parent=self._hmi,
-                position=InfoBarPosition.BOTTOM_RIGHT
-            )
-
+        except FunctionNotFoundError:
             data['status'] = Status.FAILED
+            data['mode'] = locales.get_string('failed')
+            data['status_description'] = 'function_not_found'
+            self._encrypt_list.add_item(data['uid'], data)
+
+            record = HistoryRecord()
+            record.input_path = data['input_file']
+            record.output_path = data['output_file']
+            record.status = False
+            record.status_description = 'function_not_found'
+            record.mode = data['mode']
+            record.operation = data['operation']
+            record.time = time.time()
+
+            self._db.add_history_record(record)
+
+        except Exception as e:
+            data['status'] = Status.FAILED
+            data['status_description'] = 'work_error'
             self._encrypt_list.add_item(data['uid'], data)
 
             record = HistoryRecord()

@@ -136,15 +136,18 @@ uint8_t read_cipher_from_file(
     open_files(file_name, file_name, &file, &file);
 
     if (file == INVALID_HANDLE_VALUE) {
+        close_files(file, file);
         return 1; //Ошибка при работе с файлом
     }
     func_result const size = get_file_size(file);
 
     if (size.error) {
+        close_files(file, file);
         return 1; //Ошибка при работе с файлом
     }
 
     if (size.result < 2) {
+        close_files(file, file);
         return 2; //Файл не зашифрован
     }
 
@@ -153,13 +156,17 @@ uint8_t read_cipher_from_file(
     func_result const result = read_block_from_file(&block_info,NULL);
 
     if (result.error) {
+        close_files(file, file);
         return 1; //Ошибка при работе с файлом
     }
 
     if (cipher[0] >= CIPHER_TYPES or cipher[1] >= CIPHER_MODES) {
+        close_files(file, file);
         return 2; //Файл не зашифрован
     }
     sprintf(cipher_info, "%s-%s", cipher_type[cipher[0]], cipher_mode[cipher[1]]);
+
+    close_files(file, file);
     return 0;
 }
 

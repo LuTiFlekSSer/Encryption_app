@@ -17,6 +17,7 @@ map_status_to_description: dict[LibStatus, str] = {
 }
 
 
+# todo если нет dll, что нибудь высрать
 class HomeWindow(ScrollArea):
     def __init__(self, name: str, parent=None):
         super().__init__(parent=parent)

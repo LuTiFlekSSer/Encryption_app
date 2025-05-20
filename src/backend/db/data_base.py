@@ -241,7 +241,7 @@ class DataBase(metaclass=Singleton):
                             FROM passwords
                             WHERE name = ? LIMIT 1''', (name,))
 
-            if curr.fetchone() is None:
+            if curr.fetchone() is not None:
                 curr.execute('''DELETE
                                 FROM passwords
                                 WHERE name = ?''', (name,))
@@ -256,4 +256,34 @@ class DataBase(metaclass=Singleton):
 
             curr.execute('''DELETE
                             FROM passwords''')
+            self._connection.commit()
+
+    def get_password_signature(self) -> bytes:
+        with self._lock:
+            curr = self._connection.cursor()
+
+            curr.execute('''SELECT signature
+                            FROM password_signature''')
+            signature = curr.fetchall()
+            self._connection.commit()
+
+            if len(signature) == 0:
+                raise ValueError
+
+            return signature[0][0]
+
+    def set_password_signature(self, signature: bytes):
+        with self._lock:
+            curr = self._connection.cursor()
+
+            curr.execute('''SELECT 1
+                            FROM password_signature LIMIT 1''')
+
+            if curr.fetchone() is None:
+                curr.execute('''INSERT INTO password_signature (signature)
+                                VALUES (?)''', (signature,))
+            else:
+                curr.execute('''UPDATE password_signature
+                                SET signature = ?''', (signature,))
+
             self._connection.commit()

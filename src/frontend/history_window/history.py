@@ -13,7 +13,7 @@ from src.backend.db.data_base import DataBase
 from src.backend.db.db_records import HistoryRecord, OperationType
 from src.frontend.icons.icons import CustomIcons
 from src.frontend.paged_list_view import PagedListView
-from src.frontend.sub_windows.message_box import MessageBox
+from src.frontend.sub_windows.message_box.message_box import MessageBox
 from src.locales.locales import Locales
 from src.utils.config import Config
 from src.utils.utils import find_mega_parent

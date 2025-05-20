@@ -15,7 +15,8 @@ from src.backend.db.data_base import DataBase
 from src.backend.db.db_records import HistoryRecord, OperationType
 from src.backend.encrypt_libs.additional_lib import AdditionalLib
 from src.backend.encrypt_libs.encrypt_lib import EncryptLib, LibStatus, EncryptResult
-from src.backend.encrypt_libs.errors import AddTaskError, FileError, SignatureError, FunctionNotFoundError
+from src.backend.encrypt_libs.errors import AddTaskError, FileError, SignatureError, FunctionNotFoundError, \
+    InvalidKeyError
 from src.global_flags import GlobalFlags
 from src.utils.config import Config, TExtraFunc
 from src.utils.singleton import Singleton
@@ -71,6 +72,7 @@ class Loader(metaclass=Singleton):
         self._pool: ThreadPoolExecutor = ThreadPoolExecutor(max_workers=int(self._db.get_setting('queue_size')))
         self._lock: Lock = Lock()
         self._running: defaultdict[str, int] = defaultdict(int)
+        self._file_sizes: dict[str, int] = {}
         self._output_files: set[str] = set()
         self._queue: set[TTask] = set()
         self._last_update: float = 0
@@ -122,7 +124,7 @@ class Loader(metaclass=Singleton):
         self._extra_libs['magma_init']()
         res = self._extra_libs['magma_generate_keys'](key, ctypes.byref(KS))
         if res != 0:
-            raise AddTaskError  # Не сгенерил ключи
+            raise InvalidKeyError  # Не сгенерил ключи
 
         byte_text = bytearray(text)
         if op == OperationType.ENCRYPT:
@@ -151,7 +153,7 @@ class Loader(metaclass=Singleton):
 
         return bytes(result)
 
-    def micro_kyznechik(self, password: str, text: bytes, op: OperationType)-> bytes:
+    def micro_kyznechik(self, password: str, text: bytes, op: OperationType) -> bytes:
         if any(func not in self._extra_libs for func in
                ['kyznechik_init', 'kyznechik_generate_keys', 'kyznechik_encrypt_data', 'kyznechik_decrypt_data',
                 'kyznechik_finalize']):
@@ -169,7 +171,7 @@ class Loader(metaclass=Singleton):
         self._extra_libs['kyznechik_init']()
         res = self._extra_libs['kyznechik_generate_keys'](key, ctypes.byref(KS))
         if res != 0:
-            raise AddTaskError  # Не сгенерил ключи
+            raise InvalidKeyError  # Не сгенерил ключи
 
         byte_text = bytearray(text)
         if op == OperationType.ENCRYPT:
@@ -254,6 +256,49 @@ class Loader(metaclass=Singleton):
             self._running[file_in_path] += 1
             self._output_files.add(file_out_path)
 
+    def decrypt(self,
+                mode: str,
+                file_in_path: str,
+                file_out_path: str,
+                hash_password: str,
+                uid: str):
+        if mode not in self._libs:
+            raise FunctionNotFoundError
+
+        cur = ctypes.c_uint64(0)
+        total = ctypes.c_uint64(1)
+        key = bytearray(hashlib.sha512(hash_password.encode()).digest())  # todo sha512 -> PBKDF2
+        drive, _ = os.path.splitdrive(file_out_path)
+        threads = int(self._db.get_setting('threads'))
+
+        task = TTask(
+            current=cur,
+            total=total,
+            output_path=file_out_path,
+            input_path=file_in_path,
+            uid=uid,
+            mode=mode,
+            operation=OperationType.DECRYPT
+        )
+        with self._lock:
+            self._global_flags.is_running.set()
+
+            future = self._pool.submit(self._execute_task,
+                                       self._libs[mode].decrypt,
+                                       file_in_path,
+                                       drive,
+                                       file_out_path,
+                                       key,
+                                       threads,
+                                       ctypes.byref(cur),
+                                       ctypes.byref(total),
+                                       task)
+
+            task.future = future
+
+            self._running[file_in_path] += 1
+            self._output_files.add(file_out_path)
+
     def _execute_task(self,
                       func: Callable,
                       file_in_path: str,
@@ -268,6 +313,7 @@ class Loader(metaclass=Singleton):
         with self._lock:
             self.events.sig_task_start.emit(task.uid, time.time())
             self._queue.add(task)
+            self._file_sizes[task.input_path] = os.path.getsize(task.input_path)
 
         return func(file_in_path,
                     drive,
@@ -292,6 +338,13 @@ class Loader(metaclass=Singleton):
                 st.setdefault(value.cipher, []).append(value.mode)
         return st
 
+    def get_file_size(self, path: str) -> int:
+        with self._lock:
+            if path in self._file_sizes:
+                return self._file_sizes[path]
+            else:
+                raise FileNotFoundError
+
     def exec(self):
         with self._lock:
             if self._last_update + Config.UPDATE_INTERVAL < (lt := time.time()):
@@ -301,13 +354,15 @@ class Loader(metaclass=Singleton):
             to_remove = set()
 
             for task in self._queue:
-                if (last_progres := (int(task.current.value / task.total.value * 100))) != task.last_progress:
+                if (last_progres := (int(task.current.value /
+                                         (task.total.value + 0.00001) * 100))) != task.last_progress:
                     self.events.sig_update_progress.emit(task.uid,
                                                          task.current.value,
                                                          task.total.value)
                     task.last_progress = last_progres
 
                 if task.future.done():
+                    self._file_sizes.pop(task.input_path)
                     self.events.sig_update_status.emit(task.uid, task.future.result())
 
                     record = HistoryRecord()
@@ -333,6 +388,20 @@ class Loader(metaclass=Singleton):
             if len(self._queue) == 0:
                 self._global_flags.is_running.clear()
 
+
+TMicroFunc = Callable[[str, bytes, OperationType], bytes]
+_micro_ciphers: dict[str, TMicroFunc] = {
+    'magma': Loader().micro_magma,
+    'kyznechik': Loader().micro_kyznechik
+}
+micro_ciphers: dict[str, TMicroFunc] = {}
+
+for key, func in _micro_ciphers.items():
+    try:
+        func('1', b'1', OperationType.ENCRYPT)
+        micro_ciphers[key] = func
+    except:
+        pass
 
 if __name__ == '__main__':
     loader = Loader()

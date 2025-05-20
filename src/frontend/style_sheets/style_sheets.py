@@ -10,6 +10,7 @@ class StyleSheet(StyleSheetBase, Enum):
     SETTINGS_WINDOW = 'settings_window'
     HISTORY_WINDOW = 'history_window'
     ENCRYPT_WINDOW = 'encrypt_window'
+    PasswordsWindow = 'passwords_window'
 
     def path(self, theme=Theme.AUTO):
         return resource_path(f'src/frontend/style_sheets/qss/{self.value}.qss')
