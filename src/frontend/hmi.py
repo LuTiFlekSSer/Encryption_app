@@ -68,26 +68,21 @@ class MainWindow(MSFluentWindow):
     def _init_screen(self):
         init_start = time.time()
 
-        icon = FluentIcon.HOME.colored(QColor(Config.GRAY_COLOR_900), QColor(Config.GRAY_COLOR_50))
         self._home_window = HomeWindow(Config.APP_NAME, parent=self)
-        self.addSubInterface(self._home_window, icon, self._locales.get_string('home'))
+        self.addSubInterface(self._home_window, FluentIcon.HOME, self._locales.get_string('home'))
 
-        icon = FluentIcon.VPN.colored(QColor(Config.GRAY_COLOR_900), QColor(Config.GRAY_COLOR_50))
         self._encrypt_window = EncryptWindow(self._locales.get_string('encrypt'), parent=self)
-        self.addSubInterface(self._encrypt_window, icon, self._locales.get_string('encrypt'))
+        self.addSubInterface(self._encrypt_window, FluentIcon.VPN, self._locales.get_string('encrypt'))
 
-        icon = CustomIcons.KEY.colored(QColor(Config.GRAY_COLOR_900), QColor(Config.GRAY_COLOR_50))
         self._passwords_window = PasswordsWindow(self._locales.get_string('passwords'), parent=self)
-        self.addSubInterface(self._passwords_window, icon, self._locales.get_string('passwords'))
+        self.addSubInterface(self._passwords_window, CustomIcons.KEY, self._locales.get_string('passwords'))
 
-        icon = FluentIcon.HISTORY.colored(QColor(Config.GRAY_COLOR_900), QColor(Config.GRAY_COLOR_50))
         self._history_window = HistoryWindow(self._locales.get_string('history'), parent=self)
-        self.addSubInterface(self._history_window, icon, self._locales.get_string('history'))
+        self.addSubInterface(self._history_window, FluentIcon.HISTORY, self._locales.get_string('history'))
 
-        icon = FluentIcon.SETTING.colored(QColor(Config.GRAY_COLOR_900), QColor(Config.GRAY_COLOR_50))
         self._settings_window = SettingsWindow(self._locales.get_string('settings'), parent=self)
         self.addSubInterface(self._settings_window,
-                             icon,
+                             FluentIcon.SETTING,
                              self._locales.get_string('settings'),
                              position=NavigationItemPosition.BOTTOM)
 
