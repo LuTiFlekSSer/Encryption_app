@@ -43,8 +43,12 @@ class PasswordsWindow(QWidget):
 
         self._vl_view_layout.addWidget(self._passwords)
 
+        self.setEnabled(False)
+
     def _connect_widget_actions(self):
         self._buttons_card.reset_master_key.connect(self._passwords.reset_master_key)
         self._buttons_card.clear_passwords.connect(self._passwords.clear_passwords)
         self._buttons_card.add_password.connect(self._passwords.add_password)
         self._buttons_card.lock_passwords.connect(self._passwords.lock_passwords)
+
+        self._passwords.sig_change_window_state.connect(self.setEnabled)

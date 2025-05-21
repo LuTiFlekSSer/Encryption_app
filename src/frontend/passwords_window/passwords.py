@@ -1,4 +1,4 @@
-from PyQt5.QtCore import Qt, QObject, pyqtSignal
+from PyQt5.QtCore import Qt, QObject, pyqtSignal, QTimer
 from PyQt5.QtGui import QColor, QFontMetrics
 from PyQt5.QtWidgets import QSizePolicy, QHBoxLayout, QLabel, QVBoxLayout
 from qfluentwidgets import IconWidget, StrongBodyLabel, ToolButton, SimpleCardWidget, FluentIcon, PipsPager, \
@@ -26,7 +26,6 @@ class Events(QObject):
 events = Events()
 
 
-# todo анимация при открытии
 class PasswordCard(SimpleCardWidget):
     def __init__(self, parent=None):
         super().__init__(parent=parent)
@@ -86,6 +85,8 @@ class PasswordCard(SimpleCardWidget):
 
 
 class Passwords(SimpleCardWidget):
+    sig_change_window_state: pyqtSignal = pyqtSignal(bool)
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
@@ -118,9 +119,7 @@ class Passwords(SimpleCardWidget):
         self._db.events.sig_add_history_record.connect(self._password_list.add_item)
         self._db.events.sig_strip_last_history_records.connect(self._password_list.strip_last_items)
         events.sig_delete_password.connect(self._on_sig_delete_password)
-        self._hmi.stackedWidget.currentChanged.connect(self._on_sig_current_changed)
-
-        # self._hmi.stackedWidget.a
+        self._hmi.stackedWidget.view.aniFinished.connect(self._on_sig_ani_finished)
 
     def check_master_key(self, need_pop: bool = True):
         if self._db.get_setting('password_cipher') == '':
@@ -138,7 +137,9 @@ class Passwords(SimpleCardWidget):
                                                       OperationType.ENCRYPT)
 
                 self._db.set_password_signature(password_signature)
+                self.sig_change_window_state.emit(True)
             else:
+                self.sig_change_window_state.emit(False)
                 if need_pop:
                     self._hmi.navigationInterface.history.pop()
         else:
@@ -154,6 +155,7 @@ class Passwords(SimpleCardWidget):
                     self.reset_master_key(True)
 
                 else:
+                    self.sig_change_window_state.emit(False)
                     if need_pop:
                         self._hmi.navigationInterface.history.pop()
 
@@ -173,13 +175,15 @@ class Passwords(SimpleCardWidget):
                         self._key_storage.master_key = password_input.get_password()
                         self._password_list.set_items(
                             {record.name: record.name for record in self._db.get_all_passwords()})
+                        self.sig_change_window_state.emit(True)
                     else:
+                        self.sig_change_window_state.emit(False)
                         if need_pop:
                             self._hmi.navigationInterface.history.pop()
 
-    def _on_sig_current_changed(self, index: int):
+    def _on_sig_ani_finished(self):
         if self._hmi.stackedWidget.currentWidget() is self.parent():
-            self.check_master_key()
+            QTimer.singleShot(0, self.check_master_key)
 
     def clear_passwords(self):
         message_box = MessageBox(title=self._locales.get_string('clear_passwords_description'),
@@ -211,6 +215,7 @@ class Passwords(SimpleCardWidget):
             self._pager.setPageNumber(0)
             self._pager.setVisibleNumber(0)
 
+            self.sig_change_window_state.emit(False)
             self.check_master_key()
 
     def _on_sig_delete_password(self, name: str):
@@ -257,6 +262,7 @@ class Passwords(SimpleCardWidget):
         self._key_storage.master_key = ''
         self._password_list.clear_items()
         self._hmi.navigationInterface.history.pop()
+        self.sig_change_window_state.emit(False)
 
     def _on_pagination_changed(self, current_page: int, total_pages: int):
         self._pager.setPageNumber(total_pages)
