@@ -167,6 +167,10 @@ class Passwords(SimpleCardWidget):
                     password_input.cancelButton.setText(self._locales.get_string('cancel'))
 
                     if password_input.exec():
+                        if password_input.need_reset():
+                            self.reset_master_key(True)
+                            return
+
                         self._key_storage.master_key = password_input.get_password()
                         self._password_list.set_items(
                             {record.name: record.name for record in self._db.get_all_passwords()})
@@ -181,7 +185,7 @@ class Passwords(SimpleCardWidget):
     def clear_passwords(self):
         message_box = MessageBox(title=self._locales.get_string('clear_passwords_description'),
                                  description=self._locales.get_string('clear_passwords_message'),
-                                 parent=find_mega_parent(self))
+                                 parent=self._hmi)
 
         message_box.yesButton.setText(self._locales.get_string('yes'))
         message_box.cancelButton.setText(self._locales.get_string('no'))
@@ -195,7 +199,7 @@ class Passwords(SimpleCardWidget):
     def reset_master_key(self, skip_message: bool = False):
         message_box = MessageBox(title=self._locales.get_string('reset_master_key_description'),
                                  description=self._locales.get_string('reset_master_key_message'),
-                                 parent=find_mega_parent(self))
+                                 parent=self._hmi)
 
         message_box.yesButton.setText(self._locales.get_string('yes'))
         message_box.cancelButton.setText(self._locales.get_string('no'))
@@ -213,7 +217,7 @@ class Passwords(SimpleCardWidget):
     def _on_sig_delete_password(self, name: str):
         message_box = MessageBox(title=self._locales.get_string('remove_password_description'),
                                  description=self._locales.get_string('remove_password_message'),
-                                 parent=find_mega_parent(self))
+                                 parent=self._hmi)
 
         message_box.yesButton.setText(self._locales.get_string('yes'))
         message_box.cancelButton.setText(self._locales.get_string('no'))
@@ -249,6 +253,11 @@ class Passwords(SimpleCardWidget):
 
             self._db.add_password(record)
             self._password_list.add_item(record.name, record.name)
+
+    def lock_passwords(self):
+        self._key_storage.master_key = ''
+        self._password_list.clear_items()
+        self._hmi.navigationInterface.history.pop()
 
     def _on_pagination_changed(self, current_page: int, total_pages: int):
         self._pager.setPageNumber(total_pages)

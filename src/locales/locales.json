@@ -415,6 +415,14 @@
     "wrong_password": {
       "ru": "Введен неверный пароль",
       "en": "Incorrect password entered"
+    },
+    "cipher_mode": {
+      "ru": "Алгоритм шифрования паролей",
+      "en": "Password encryption algorithm"
+    },
+    "lock_passwords": {
+      "ru": "Заблокировать пароли",
+      "en": "Lock passwords"
     }
   }
 }

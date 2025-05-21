@@ -32,6 +32,7 @@ class PasswordCreator(MessageBoxBase):
         self._le_confirm_password.setPlaceholderText(self._locales.get_string('confirm_password_placeholder'))
 
         self.viewLayout.addWidget(self._l_title)
+        self.viewLayout.addSpacing(self.viewLayout.spacing())
         self.viewLayout.addWidget(self._le_password_name)
         self.viewLayout.addWidget(self._le_password)
         self.viewLayout.addWidget(self._le_confirm_password)
