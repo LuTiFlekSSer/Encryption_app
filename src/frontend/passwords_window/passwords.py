@@ -26,7 +26,6 @@ class Events(QObject):
 events = Events()
 
 
-# todo разблокировка базы после включения
 # todo анимация при открытии
 class PasswordCard(SimpleCardWidget):
     def __init__(self, parent=None):
