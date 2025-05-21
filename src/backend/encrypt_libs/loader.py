@@ -402,7 +402,14 @@ micro_ciphers: dict[str, TMicroFunc] = {}
 
 for key, func in _micro_ciphers.items():
     try:
-        func('1', b'1', OperationType.ENCRYPT)
+        test_bytes = os.urandom(32)
+
+        enc_res = func('1', test_bytes, OperationType.ENCRYPT)
+        dec_res = func('1', enc_res, OperationType.DECRYPT)
+
+        if test_bytes != dec_res:
+            continue
+
         micro_ciphers[key] = func
     except:
         pass

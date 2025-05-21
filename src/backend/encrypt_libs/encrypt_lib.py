@@ -74,7 +74,7 @@ class EncryptLib:
 
         enc_file_name: str = Config.TEST_FILE_ENCRYPT
         dec_file_name: str = Config.TEST_FILE_DECRYPT
-        with  open(enc_file_name, 'wb') as enc_file, open(dec_file_name, 'w'):
+        with open(enc_file_name, 'wb') as enc_file, open(dec_file_name, 'w'):
             test_text = os.urandom(Config.TEST_FILE_SIZE)
             enc_file.write(test_text)
 
