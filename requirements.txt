@@ -1,5 +1,5 @@
 PyQt5==5.15.11
-PyQt-Fluent-Widgets[full]==1.8.0
+PyQt-Fluent-Widgets[full]==1.8.1
 PyQt5-stubs==5.15.6
 nuitka==2.7.2
 pywin32==310
