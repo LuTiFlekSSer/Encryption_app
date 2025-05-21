@@ -1,5 +1,4 @@
 from PyQt5.QtGui import QColor
-from PyQt5.QtWidgets import QVBoxLayout
 from qfluentwidgets import MessageBoxBase, SubtitleLabel, PasswordLineEdit, ComboBox, TeachingTipView, PopupTeachingTip, \
     InfoBarIcon
 
@@ -13,7 +12,6 @@ class MasterKeyCreator(MessageBoxBase):
         super().__init__(parent=parent)
         self.widget.setMinimumWidth(480)
 
-        self.layout: QVBoxLayout = QVBoxLayout()
         self._l_title: SubtitleLabel = SubtitleLabel(self)
         self._le_password: PasswordLineEdit = PasswordLineEdit(self)
         self._le_confirm_password: PasswordLineEdit = PasswordLineEdit(self)
@@ -38,7 +36,7 @@ class MasterKeyCreator(MessageBoxBase):
         self.viewLayout.addWidget(self._cb_encrypt_mode)
 
     def validate(self) -> bool:
-        if self._le_password.text() != self._le_confirm_password.text():
+        if self._le_password.text().strip() != self._le_confirm_password.text().strip():
             view = TeachingTipView(
                 title=self._locales.get_string('error'),
                 content=self._locales.get_string('passwords_mismatch'),
@@ -57,7 +55,7 @@ class MasterKeyCreator(MessageBoxBase):
 
             return False
 
-        if len(self._le_password.text()) == 0:
+        if len(self._le_password.text().strip()) == 0:
             view = TeachingTipView(
                 title=self._locales.get_string('error'),
                 content=self._locales.get_string('passwords_empty'),
@@ -98,7 +96,7 @@ class MasterKeyCreator(MessageBoxBase):
         return True
 
     def get_password(self) -> str:
-        return self._le_password.text()
+        return self._le_password.text().strip()
 
     def get_encrypt_mode(self) -> str:
-        return self._cb_encrypt_mode.currentText()
+        return self._cb_encrypt_mode.currentText().strip()

@@ -1,7 +1,6 @@
 import hashlib
 
 from PyQt5.QtGui import QColor
-from PyQt5.QtWidgets import QVBoxLayout
 from qfluentwidgets import MessageBoxBase, SubtitleLabel, PasswordLineEdit, TeachingTipView, PopupTeachingTip, \
     InfoBarIcon, LineEdit
 
@@ -15,7 +14,6 @@ class PasswordCreator(MessageBoxBase):
         super().__init__(parent=parent)
         self.widget.setMinimumWidth(480)
 
-        self.layout: QVBoxLayout = QVBoxLayout()
         self._l_title: SubtitleLabel = SubtitleLabel(self)
         self._le_password_name: LineEdit = LineEdit(self)
         self._le_password: PasswordLineEdit = PasswordLineEdit(self)
@@ -39,7 +37,7 @@ class PasswordCreator(MessageBoxBase):
         self.viewLayout.addWidget(self._le_confirm_password)
 
     def validate(self) -> bool:
-        if self._le_password.text() != self._le_confirm_password.text():
+        if self._le_password.text().strip() != self._le_confirm_password.text().strip():
             view = TeachingTipView(
                 title=self._locales.get_string('error'),
                 content=self._locales.get_string('passwords_mismatch'),
@@ -58,7 +56,7 @@ class PasswordCreator(MessageBoxBase):
 
             return False
 
-        if len(self._le_password.text()) == 0:
+        if len(self._le_password.text().strip()) == 0:
             view = TeachingTipView(
                 title=self._locales.get_string('error'),
                 content=self._locales.get_string('passwords_empty'),
@@ -77,7 +75,7 @@ class PasswordCreator(MessageBoxBase):
 
             return False
 
-        if self._le_password_name.text() == '':
+        if self._le_password_name.text().strip() == '':
             view = TeachingTipView(
                 title=self._locales.get_string('error'),
                 content=self._locales.get_string('no_name'),
@@ -100,7 +98,7 @@ class PasswordCreator(MessageBoxBase):
 
     def get_password_record(self) -> PasswordRecord:
         record = PasswordRecord()
-        record.name = self._le_password_name.text()
-        record.password = hashlib.sha512(self._le_password.text().encode()).digest()  # todo PBKDF2
+        record.name = self._le_password_name.text().strip()
+        record.password = hashlib.sha512(self._le_password.text().strip().encode()).digest()  # todo PBKDF2
 
         return record

@@ -403,6 +403,18 @@
     "password_already_exists": {
       "ru": "Пароль с таким именем уже существует",
       "en": "A password with this name already exists"
+    },
+    "unlock_passwords": {
+      "ru": "Разблокировка паролей",
+      "en": "Passwords unlocking"
+    },
+    "master_key_placeholder": {
+      "ru": "Введите мастер пароль",
+      "en": "Enter the master password"
+    },
+    "wrong_password": {
+      "ru": "Введен неверный пароль",
+      "en": "Incorrect password entered"
     }
   }
 }

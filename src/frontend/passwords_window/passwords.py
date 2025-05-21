@@ -12,6 +12,7 @@ from src.frontend.paged_list_view import PagedListView
 from src.frontend.sub_windows.master_key_creator_window.master_key_creator import MasterKeyCreator
 from src.frontend.sub_windows.message_box.message_box import MessageBox
 from src.frontend.sub_windows.password_creator_window.password_creator_window import PasswordCreator
+from src.frontend.sub_windows.password_input_window.password_input_window import PasswordInput
 from src.locales.locales import Locales
 from src.master_key_storage.master_key_storage import MasterKeyStorage
 from src.utils.config import Config
@@ -145,7 +146,7 @@ class Passwords(SimpleCardWidget):
             if self._db.get_setting('password_cipher') not in micro_ciphers:
                 message_box = MessageBox(title=self._locales.get_string('function_not_found'),
                                          description=self._locales.get_string('master_key_not_available'),
-                                         parent=find_mega_parent(self))
+                                         parent=self._hmi)
 
                 message_box.yesButton.setText(self._locales.get_string('yes'))
                 message_box.cancelButton.setText(self._locales.get_string('no'))
@@ -158,8 +159,20 @@ class Passwords(SimpleCardWidget):
                         self._hmi.navigationInterface.history.pop()
 
                 return
+            else:
+                if self._key_storage.master_key == '':
+                    password_input = PasswordInput(self._hmi)
 
-            self._password_list.set_items({record.name: record.name for record in self._db.get_all_passwords()})
+                    password_input.yesButton.setText(self._locales.get_string('confirm'))
+                    password_input.cancelButton.setText(self._locales.get_string('cancel'))
+
+                    if password_input.exec():
+                        self._key_storage.master_key = password_input.get_password()
+                        self._password_list.set_items(
+                            {record.name: record.name for record in self._db.get_all_passwords()})
+                    else:
+                        if need_pop:
+                            self._hmi.navigationInterface.history.pop()
 
     def _on_sig_current_changed(self, index: int):
         if self._hmi.stackedWidget.currentWidget() is self.parent():
