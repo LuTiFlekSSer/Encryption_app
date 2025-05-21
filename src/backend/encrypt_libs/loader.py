@@ -149,6 +149,8 @@ class Loader(metaclass=Singleton):
             idx = -1
             while result[idx] != 128:
                 idx -= 1
+                if idx == -9:
+                    return bytes(result)
             result = result[:idx]
 
         return bytes(result)
@@ -196,6 +198,8 @@ class Loader(metaclass=Singleton):
             idx = -1
             while result[idx] != 128:
                 idx -= 1
+                if idx == -17:
+                    return bytes(result)
             result = result[:idx]
 
         return bytes(result)
