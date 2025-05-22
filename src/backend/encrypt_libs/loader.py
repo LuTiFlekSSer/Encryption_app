@@ -18,6 +18,7 @@ from src.backend.encrypt_libs.encrypt_lib import EncryptLib, LibStatus, EncryptR
 from src.backend.encrypt_libs.errors import AddTaskError, FileError, SignatureError, FunctionNotFoundError, \
     InvalidKeyError
 from src.global_flags import GlobalFlags
+from src.streebog.streebog import Streebog
 from src.utils.config import Config, TExtraFunc
 from src.utils.singleton import Singleton
 
@@ -115,8 +116,8 @@ class Loader(metaclass=Singleton):
         if len(text) == 0:
             raise ValueError
 
-        key_type = ctypes.c_uint8 * 32  # todo Сделать нормально после PBKDF2
-        key = hashlib.sha512(password.encode()).digest()
+        key_type = ctypes.c_uint8 * 32
+        key = Streebog.calc_hash(password.encode())
         key = key_type(*key[:32])
 
         KS = ctypes.POINTER(ctypes.POINTER(ctypes.c_uint8))()
@@ -164,8 +165,8 @@ class Loader(metaclass=Singleton):
         if len(text) == 0:
             raise ValueError
 
-        key_type = ctypes.c_uint8 * 32  # todo Сделать нормально после PBKDF2
-        key = hashlib.sha512(password.encode()).digest()
+        key_type = ctypes.c_uint8 * 32
+        key = Streebog.calc_hash(password.encode())
         key = key_type(*key[:32])
 
         KS = ctypes.POINTER(ctypes.POINTER(ctypes.c_uint8))()
@@ -224,11 +225,14 @@ class Loader(metaclass=Singleton):
                 mode: str,
                 file_in_path: str,
                 file_out_path: str,
-                hash_password: str,
+                hash_password: bytes,
                 uid: str):
         cur = ctypes.c_uint64(0)
         total = ctypes.c_uint64(1)
-        key = bytearray(hashlib.sha512(hash_password.encode()).digest())  # todo sha512 -> PBKDF2
+
+        key = bytearray(hash_password)
+        if len(key) != 64:
+            raise InvalidKeyError
         drive, _ = os.path.splitdrive(file_out_path)
         threads = int(self._db.get_setting('threads'))
 
@@ -264,14 +268,16 @@ class Loader(metaclass=Singleton):
                 mode: str,
                 file_in_path: str,
                 file_out_path: str,
-                hash_password: str,
+                hash_password: bytes,
                 uid: str):
         if mode not in self._libs:
             raise FunctionNotFoundError
 
         cur = ctypes.c_uint64(0)
         total = ctypes.c_uint64(1)
-        key = bytearray(hashlib.sha512(hash_password.encode()).digest())  # todo sha512 -> PBKDF2
+        key = bytearray(hash_password)
+        if len(key) != 64:
+            raise InvalidKeyError
         drive, _ = os.path.splitdrive(file_out_path)
         threads = int(self._db.get_setting('threads'))
 

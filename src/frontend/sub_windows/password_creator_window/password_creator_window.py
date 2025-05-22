@@ -1,11 +1,10 @@
-import hashlib
-
 from PyQt5.QtGui import QColor
 from qfluentwidgets import MessageBoxBase, SubtitleLabel, PasswordLineEdit, TeachingTipView, PopupTeachingTip, \
     InfoBarIcon, LineEdit
 
 from src.backend.db.db_records import PasswordRecord
 from src.locales.locales import Locales
+from src.streebog.streebog import Streebog
 from src.utils.config import Config
 
 
@@ -100,6 +99,6 @@ class PasswordCreator(MessageBoxBase):
     def get_password_record(self) -> PasswordRecord:
         record = PasswordRecord()
         record.name = self._le_password_name.text().strip()
-        record.password = hashlib.sha512(self._le_password.text().strip().encode()).digest()  # todo PBKDF2
+        record.password = Streebog.calc_hash(self._le_password.text().strip().encode())
 
         return record
