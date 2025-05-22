@@ -175,7 +175,7 @@ void open_files(const WCHAR *file_in_path, const WCHAR *file_out_path, HANDLE *i
     *input_file = CreateFileW(
         (LPWSTR)file_in_path,
         GENERIC_READ | GENERIC_WRITE,
-        0,
+        FILE_SHARE_READ,
         NULL,
         OPEN_EXISTING,
         FILE_FLAG_OVERLAPPED,
