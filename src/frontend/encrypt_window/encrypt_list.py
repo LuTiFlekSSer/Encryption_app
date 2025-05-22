@@ -502,7 +502,7 @@ class EncryptList(SimpleCardWidget):
         self._pager.setVisibleNumber(min(total_pages, 50))
         self._pager.setCurrentIndex(current_page)
 
-    def _add_task(self, data: TEncryptData):
+    def add_task(self, data: TEncryptData):
         try:
             match data['operation']:
                 case OperationType.ENCRYPT:

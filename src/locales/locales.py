@@ -10,11 +10,10 @@ from src.backend.db.data_base import DataBase
 from src.locales import errors
 from src.utils.config import Config
 from src.utils.singleton import Singleton
-from src.utils.utils import resource_path
 
 
 class Locales(metaclass=Singleton):
-    with open(resource_path(Config.LOCALES_PATH), encoding='utf-8') as file:
+    with open(Config.LOCALES_PATH, encoding='utf-8') as file:
         _locales = json.load(file)
 
     _language = None

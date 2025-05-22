@@ -2,7 +2,7 @@ import sys
 import time
 
 from PyQt5.QtCore import QSize, QEventLoop, QTimer, Qt, pyqtSignal
-from PyQt5.QtGui import QIcon, QGuiApplication, QColor
+from PyQt5.QtGui import QIcon, QGuiApplication
 from PyQt5.QtWidgets import QApplication
 from qfluentwidgets import SplashScreen, FluentIcon, MSFluentWindow, NavigationItemPosition, setTheme, Theme, \
     setThemeColor, SystemThemeListener, InfoBar, InfoBarPosition
@@ -18,12 +18,11 @@ from src.frontend.settings_window.settings_window import SettingsWindow
 from src.global_flags import GlobalFlags
 from src.locales.locales import Locales
 from src.utils.config import Config
-from src.utils.utils import resource_path
-
 
 # todo при запуске шифрования проверить, что библиотеки не удалили, если удалили -> функция из passwords_window
 class MainWindow(MSFluentWindow):
     sig_check_passwords: pyqtSignal = pyqtSignal(bool)
+    sig_add_task: pyqtSignal = pyqtSignal()
 
     def __init__(self, app: QApplication):
         super().__init__()
@@ -42,7 +41,7 @@ class MainWindow(MSFluentWindow):
         self.resize(*map(int, self._db.get_setting('window_size').split()))
         self.setMinimumWidth(840)
         self.setWindowTitle(Config.APP_NAME)
-        self.setWindowIcon(QIcon(resource_path('res/logo.png')))
+        self.setWindowIcon(QIcon('res/logo.png'))
         self._center()
 
         self._splashscreen: SplashScreen = SplashScreen(self.windowIcon(), self)

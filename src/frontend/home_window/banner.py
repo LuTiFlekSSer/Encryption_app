@@ -6,6 +6,7 @@ from qfluentwidgets import DisplayLabel, FluentIcon
 from src.frontend.home_window.main_cards import MainCardView
 from src.locales.locales import Locales
 from src.utils.config import Config
+from src.utils.utils import find_mega_parent
 
 
 class Banner(QWidget):
@@ -13,6 +14,9 @@ class Banner(QWidget):
         super().__init__(parent=parent)
         self.setObjectName('w_banner')
         self._locales: Locales = Locales()
+
+        from src.frontend.hmi import MainWindow
+        self._hmi: MainWindow = find_mega_parent(self)
 
         self.__create_widgets()
 
@@ -46,7 +50,7 @@ class Banner(QWidget):
         self._layout.addWidget(self._card_view)
 
     def _add_task_callback(self):
-        pass
+        self._hmi.sig_add_task.emit()
 
     @staticmethod
     def _github_callback():

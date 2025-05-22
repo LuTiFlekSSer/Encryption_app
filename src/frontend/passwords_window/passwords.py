@@ -121,7 +121,7 @@ class Passwords(SimpleCardWidget):
         events.sig_delete_password.connect(self._on_sig_delete_password)
         self._hmi.stackedWidget.view.aniFinished.connect(self._on_sig_ani_finished)
 
-    def check_master_key(self, need_pop: bool = True):
+    def check_master_key(self):
         if self._db.get_setting('password_cipher') == '':
             creator = MasterKeyCreator(self._hmi)
             creator.yesButton.setText(self._locales.get_string('confirm'))
@@ -140,7 +140,7 @@ class Passwords(SimpleCardWidget):
                 self.sig_change_window_state.emit(True)
             else:
                 self.sig_change_window_state.emit(False)
-                if need_pop:
+                if self._hmi.stackedWidget.currentWidget() is self.parent():
                     self._hmi.navigationInterface.history.pop()
         else:
             if self._db.get_setting('password_cipher') not in micro_ciphers:
@@ -156,7 +156,7 @@ class Passwords(SimpleCardWidget):
 
                 else:
                     self.sig_change_window_state.emit(False)
-                    if need_pop:
+                    if self._hmi.stackedWidget.currentWidget() is self.parent():
                         self._hmi.navigationInterface.history.pop()
 
                 return
@@ -178,7 +178,7 @@ class Passwords(SimpleCardWidget):
                         self.sig_change_window_state.emit(True)
                     else:
                         self.sig_change_window_state.emit(False)
-                        if need_pop:
+                        if self._hmi.stackedWidget.currentWidget() is self.parent():
                             self._hmi.navigationInterface.history.pop()
 
     def _on_sig_ani_finished(self):

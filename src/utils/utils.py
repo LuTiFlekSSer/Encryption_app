@@ -1,8 +1,5 @@
-import os
 import pathlib
-import sys
 import tempfile
-from os import PathLike
 
 from PyQt5.QtCore import QFileInfo, QSize
 from PyQt5.QtGui import QIcon
@@ -38,15 +35,6 @@ def get_file_icon(file_path: str, size: QSize = QSize(128, 128)) -> QIcon:
     pixmap_copy = pixmap.copy()
 
     return QIcon(pixmap_copy)
-
-
-def resource_path(relative_path: str | PathLike[str]) -> str:
-    try:
-        base_path = sys._MEIPASS
-    except Exception:
-        base_path = os.path.abspath('.')
-
-    return os.path.join(base_path, relative_path)
 
 
 def find_mega_parent(widget: QWidget) -> MSFluentWindow | QWidget:

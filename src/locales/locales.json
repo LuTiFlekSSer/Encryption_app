@@ -423,6 +423,38 @@
     "lock_passwords": {
       "ru": "Заблокировать пароли",
       "en": "Lock passwords"
+    },
+    "start_task": {
+      "ru": "Добавление задачи",
+      "en": "Adding task"
+    },
+    "select_input_path": {
+      "ru": "Выберите входной файл",
+      "en": "Select input file"
+    },
+    "select_output_path": {
+      "ru": "Выберите выходной файл",
+      "en": "Select output file"
+    },
+    "filter": {
+      "ru": "Все файлы (*)",
+      "en": "All files (*)"
+    },
+    "input_file": {
+      "ru": "Входной файл:",
+      "en": "Input file:"
+    },
+    "output_file": {
+      "ru": "Выходной файл:",
+      "en": "Output file:"
+    },
+    "ENCRYPT": {
+      "ru": "Шифровать",
+      "en": "Encrypt"
+    },
+    "DECRYPT": {
+      "ru": "Расшифровать",
+      "en": "Decrypt"
     }
   }
 }

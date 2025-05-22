@@ -6,8 +6,10 @@ from qfluentwidgets import LargeTitleLabel
 from src.frontend.encrypt_window.encrypt_list import EncryptList
 from src.frontend.encrypt_window.encrypt_menu import EncryptMenu
 from src.frontend.style_sheets.style_sheets import StyleSheet
+from src.frontend.sub_windows.file_adder_window.file_adder_window import FileAdder
 from src.locales.locales import Locales
 from src.utils.config import Config
+from src.utils.utils import find_mega_parent
 
 
 class EncryptWindow(QWidget):
@@ -21,6 +23,9 @@ class EncryptWindow(QWidget):
         self._l_title: LargeTitleLabel = LargeTitleLabel(self)
         self._encrypt_menu: EncryptMenu = EncryptMenu(self)
         self._encrypt_list: EncryptList = EncryptList(self)
+
+        from src.frontend.hmi import MainWindow
+        self._hmi: MainWindow = find_mega_parent(self)
 
         self.__init_widgets()
         self._connect_widget_actions()
@@ -44,4 +49,16 @@ class EncryptWindow(QWidget):
         self._vl_view_layout.addWidget(self._encrypt_list)
 
     def _connect_widget_actions(self):
-        pass
+        self._encrypt_menu.sig_add_new_task.connect(self._on_sig_add_task)
+        self._hmi.sig_add_task.connect(self._on_sig_add_task)
+
+    def _on_sig_add_task(self):
+        if self._hmi.stackedWidget.currentWidget() is not self:
+            self._hmi.stackedWidget.setCurrentWidget(self)
+
+        file_adder = FileAdder(self._hmi)
+        file_adder.yesButton.setText(self._locales.get_string('confirm'))
+        file_adder.cancelButton.setText(self._locales.get_string('cancel'))
+
+        if file_adder.exec():
+            pass

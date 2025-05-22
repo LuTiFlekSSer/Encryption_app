@@ -19,7 +19,8 @@ TSettingName = Literal[
     'window_mode',
     'theme',
     'history_size',
-    'password_cipher'
+    'password_cipher',
+    'last_input_path'
 ]
 
 
@@ -97,6 +98,7 @@ class DataBase(metaclass=Singleton):
         set_default_value('theme', 'AUTO')
         set_default_value('history_size', '1000')
         set_default_value('password_cipher', '')
+        set_default_value('last_input_path', '.')
 
         self._max_history_size = int(self.get_setting('history_size'))
         self._strip_history()
