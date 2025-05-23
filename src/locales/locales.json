@@ -455,6 +455,34 @@
     "DECRYPT": {
       "ru": "Расшифровать",
       "en": "Decrypt"
+    },
+    "task_type": {
+      "ru": "Тип задачи",
+      "en": "Task type"
+    },
+    "algorithm": {
+      "ru": "Алгоритм",
+      "en": "Algorithm"
+    },
+    "mode": {
+      "ru": "Режим",
+      "en": "Mode"
+    },
+    "password": {
+      "ru": "Пароль",
+      "en": "Password"
+    },
+    "save_password": {
+      "ru": "Сохранить пароль",
+      "en": "Save password"
+    },
+    "new_password": {
+      "ru": "Новый пароль",
+      "en": "New password"
+    },
+    "saved_password": {
+      "ru": "Сохраненный пароль",
+      "en": "Saved password"
     }
   }
 }

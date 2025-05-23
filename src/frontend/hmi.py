@@ -19,9 +19,12 @@ from src.global_flags import GlobalFlags
 from src.locales.locales import Locales
 from src.utils.config import Config
 
+
 # todo при запуске шифрования проверить, что библиотеки не удалили, если удалили -> функция из passwords_window
 class MainWindow(MSFluentWindow):
-    sig_check_passwords: pyqtSignal = pyqtSignal(bool)
+    sig_check_passwords: pyqtSignal = pyqtSignal()
+    sig_passwords_check_completed: pyqtSignal = pyqtSignal(bool)
+
     sig_add_task: pyqtSignal = pyqtSignal()
 
     def __init__(self, app: QApplication):

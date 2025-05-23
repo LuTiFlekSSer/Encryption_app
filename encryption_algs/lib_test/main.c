@@ -30,7 +30,7 @@ int main() {
     result = encrypt_kyznechik_ctr(
         L"../../../input.txt",
         L"C:\\",
-        L"../../../output.txt",
+        L"../../../input.txt",
         kyznechik_key,
         6,
         &curr,
