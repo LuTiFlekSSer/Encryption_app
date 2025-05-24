@@ -483,6 +483,10 @@
     "saved_password": {
       "ru": "Сохраненный",
       "en": "Saved"
+    },
+    "WRONG_PASSWORD": {
+      "ru": "Введён неверный пароль",
+      "en": "Incorrect password entered"
     }
   }
 }

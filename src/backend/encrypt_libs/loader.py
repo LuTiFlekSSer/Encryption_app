@@ -128,7 +128,7 @@ class Loader(metaclass=Singleton):
 
         byte_text = bytearray(text)
         if op == OperationType.ENCRYPT:
-            metadata = bytearray([128] + [0] * (8 - (len(byte_text) % 8) - 1))
+            metadata = bytearray([128] + [0] * (8 - (len(byte_text) % 8) - 1) + [142] * 8)
             byte_text += metadata
 
         result = bytearray(len(byte_text))
@@ -146,11 +146,11 @@ class Loader(metaclass=Singleton):
 
         self._extra_libs['magma_finalize'](KS)
         if op == OperationType.DECRYPT:
-            idx = -1
+            if any(x != 142 for x in result[-8:]):
+                raise InvalidKeyError # Неверный пароль
+            idx = -9
             while result[idx] != 128:
                 idx -= 1
-                if idx == -9:
-                    return bytes(result)
             result = result[:idx]
 
         return bytes(result)
@@ -177,7 +177,7 @@ class Loader(metaclass=Singleton):
 
         byte_text = bytearray(text)
         if op == OperationType.ENCRYPT:
-            metadata = bytearray([128] + [0] * (16 - (len(byte_text) % 16) - 1))
+            metadata = bytearray([128] + [0] * (16 - (len(byte_text) % 16) - 1) + [142] * 16)
             byte_text += metadata
 
         result = bytearray(len(byte_text))
@@ -195,11 +195,11 @@ class Loader(metaclass=Singleton):
 
         self._extra_libs['kyznechik_finalize'](KS)
         if op == OperationType.DECRYPT:
-            idx = -1
+            if any(x != 142 for x in result[-16:]):
+                raise InvalidKeyError # Неверный пароль
+            idx = -9
             while result[idx] != 128:
                 idx -= 1
-                if idx == -17:
-                    return bytes(result)
             result = result[:idx]
 
         return bytes(result)

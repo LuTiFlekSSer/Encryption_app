@@ -122,6 +122,7 @@ uint8_t encrypt_last_bytes(const uint8_t **Ks, file_block_info const *block_info
     }
 
     magma_encrypt_data(Ks, block_info->data, block_info->data);
+    magma_encrypt_data(Ks, block_info->data + 8, block_info->data + 8);
 
     f_result = write_block_to_file(block_info, NULL);
     if (f_result.error != 0) {
@@ -162,7 +163,10 @@ uint8_t encrypt_magma_ecb(
 
     uint8_t const mod = file_size.result % 8,
                   after_file[2] = {MAGMA, ECB};
-    uint8_t delta[8] = {128};
+    uint8_t delta[16] = {128};
+    for (uint8_t i = 8; i < 16; ++i) {
+        delta[i] = 142;
+    }
 
     if (mod != 0) {
         func_result const f_result = read_block_from_file(
@@ -185,7 +189,7 @@ uint8_t encrypt_magma_ecb(
 
     *total_steps = file_size.result / 8;
 
-    uint8_t result = check_files(input_file, output_file, disk_space.result, file_size.result, 8 - mod + 2);
+    uint8_t result = check_files(input_file, output_file, disk_space.result, file_size.result, 8 - mod + 2 + 8);
 
     if (result == 1) {
         return 4; // Недостаточно места на диске
@@ -198,11 +202,11 @@ uint8_t encrypt_magma_ecb(
         output_file,
         file_size.result - mod,
         delta,
-        8,
+        16,
         after_file
     );
 
-    if (f_result.error || f_result.result != 10) {
+    if (f_result.error || f_result.result != 18) {
         close_files(input_file, output_file);
         return 6; // Не удалось записать метаданные
     }
@@ -271,7 +275,7 @@ uint8_t encrypt_magma_ecb(
                                     .file = output_file,
                                     .offset = *total_steps * 8,
                                     .data = delta,
-                                    .data_size = 8
+                                    .data_size = 16
                                 });
 
     for (uint16_t i = 0; i < num_threads; ++i) {
@@ -319,6 +323,29 @@ uint8_t remove_last_bytes(file_block_info const *block_info) {
     return 0;
 }
 
+int8_t check_password(const uint8_t **Ks, file_block_info const *block_info) {
+    magma_decrypt_data(Ks, block_info->data, block_info->data);
+
+    for (uint8_t i = 0; i < 8; ++i) {
+        if (block_info->data[i] != 142) {
+            return 2; // Неверный пароль
+        }
+    }
+
+    LARGE_INTEGER out_file_size;
+    out_file_size.QuadPart = (int64_t)block_info->offset;
+
+    if (SetFilePointerEx(block_info->file, out_file_size, NULL, FILE_BEGIN) == 0) {
+        return 1; // Ошибка при изменении размера файла
+    }
+
+    if (!SetEndOfFile(block_info->file)) {
+        return 1; // Ошибка при изменении размера файла
+    }
+
+    return 0;
+}
+
 uint8_t decrypt_magma_ecb(
     const WCHAR *file_in_path,
     const WCHAR *disk_out_name,
@@ -348,9 +375,9 @@ uint8_t decrypt_magma_ecb(
         return 3; // Не удалось получить размер файла
     }
 
-    *total_steps = file_size.result / 8;
+    *total_steps = file_size.result / 8 - 1;
 
-    uint8_t result = check_files(input_file, output_file, disk_space.result, file_size.result - 2, 0);
+    uint8_t result = check_files(input_file, output_file, disk_space.result, file_size.result - 10, 0);
 
     if (result == 1) {
         return 4; // Недостаточно места на диске
@@ -374,6 +401,39 @@ uint8_t decrypt_magma_ecb(
         close_files(input_file, output_file);
         delete_threads_data(threads_data, threads_id, threads);
         return 8; // Не удалось создать ключи
+    }
+
+    uint8_t buf[8];
+    func_result const read_info = read_block_from_file(&(file_block_info){
+                                                           .file = input_file,
+                                                           .offset = *total_steps * 8,
+                                                           .data_size = 8,
+                                                           .data = buf
+                                                       }, NULL);
+    if (read_info.error != 0) {
+        magma_finalize(Ks);
+        close_files(input_file, output_file);
+        delete_threads_data(threads_data, threads_id, threads);
+        return 11; // Ошибка при расшифровании (чтение последних байт)
+    }
+    result = check_password((const uint8_t**)Ks, &(file_block_info){
+                                .file = output_file,
+                                .offset = *total_steps * 8,
+                                .data_size = 8,
+                                .data = buf
+                            });
+
+    if (result == 1) {
+        magma_finalize(Ks);
+        close_files(input_file, output_file);
+        delete_threads_data(threads_data, threads_id, threads);
+        return 5; // Ошибка при уменьшении выходного файла
+    }
+    if (result == 2) {
+        magma_finalize(Ks);
+        close_files(input_file, output_file);
+        delete_threads_data(threads_data, threads_id, threads);
+        return 12; // Неверный пароль
     }
 
     CRITICAL_SECTION lock;
@@ -419,7 +479,6 @@ uint8_t decrypt_magma_ecb(
 
     WaitForMultipleObjects(num_threads, threads, TRUE, INFINITE);
 
-    uint8_t buf[8];
     result = remove_last_bytes(&(file_block_info){
         .file = output_file,
         .offset = *total_steps * 8 - 8,

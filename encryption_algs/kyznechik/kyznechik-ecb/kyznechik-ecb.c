@@ -31,7 +31,8 @@ uint8_t process_block(
     }
 
     result = write_block_to_file(output_file_info, event);
-    if (result.error != 0) { // todo сохранять часть
+    if (result.error != 0) {
+        // todo сохранять часть
         return 1;
     }
 
@@ -122,6 +123,7 @@ uint8_t encrypt_last_bytes(const uint8_t **Ks, file_block_info const *block_info
     }
 
     kyznechik_encrypt_data(Ks, block_info->data, block_info->data);
+    kyznechik_encrypt_data(Ks, block_info->data + 16, block_info->data + 16);
 
     f_result = write_block_to_file(block_info, NULL);
     if (f_result.error != 0) {
@@ -162,7 +164,10 @@ uint8_t encrypt_kyznechik_ecb(
 
     uint8_t const mod = file_size.result % 16,
                   after_file[2] = {KYZNECHIK, ECB};
-    uint8_t delta[16] = {128};
+    uint8_t delta[32] = {128};
+    for (uint8_t i = 16; i < 32; ++i) {
+        delta[i] = 142;
+    }
 
     if (mod != 0) {
         func_result const f_result = read_block_from_file(
@@ -185,7 +190,7 @@ uint8_t encrypt_kyznechik_ecb(
 
     *total_steps = file_size.result / 16;
 
-    uint8_t result = check_files(input_file, output_file, disk_space.result, file_size.result, 16 - mod + 2);
+    uint8_t result = check_files(input_file, output_file, disk_space.result, file_size.result, 16 - mod + 2 + 16);
 
     if (result == 1) {
         return 4; // Недостаточно места на диске
@@ -198,11 +203,11 @@ uint8_t encrypt_kyznechik_ecb(
         output_file,
         file_size.result - mod,
         delta,
-        16,
+        32,
         after_file
     );
 
-    if (f_result.error || f_result.result != 18) {
+    if (f_result.error || f_result.result != 34) {
         close_files(input_file, output_file);
         return 6; // Не удалось записать метаданные
     }
@@ -271,7 +276,7 @@ uint8_t encrypt_kyznechik_ecb(
                                     .file = output_file,
                                     .offset = *total_steps * 16,
                                     .data = delta,
-                                    .data_size = 16
+                                    .data_size = 32
                                 });
 
     for (uint16_t i = 0; i < num_threads; ++i) {
@@ -319,6 +324,29 @@ uint8_t remove_last_bytes(file_block_info const *block_info) {
     return 0;
 }
 
+int8_t check_password(const uint8_t **Ks, file_block_info const *block_info) {
+    kyznechik_decrypt_data(Ks, block_info->data, block_info->data);
+
+    for (uint8_t i = 0; i < 16; ++i) {
+        if (block_info->data[i] != 142) {
+            return 2; // Неверный пароль
+        }
+    }
+
+    LARGE_INTEGER out_file_size;
+    out_file_size.QuadPart = (int64_t)block_info->offset;
+
+    if (SetFilePointerEx(block_info->file, out_file_size, NULL, FILE_BEGIN) == 0) {
+        return 1; // Ошибка при изменении размера файла
+    }
+
+    if (!SetEndOfFile(block_info->file)) {
+        return 1; // Ошибка при изменении размера файла
+    }
+
+    return 0;
+}
+
 uint8_t decrypt_kyznechik_ecb(
     const WCHAR *file_in_path,
     const WCHAR *disk_out_name,
@@ -348,9 +376,9 @@ uint8_t decrypt_kyznechik_ecb(
         return 3; // Не удалось получить размер файла
     }
 
-    *total_steps = file_size.result / 16;
+    *total_steps = file_size.result / 16 - 1;
 
-    uint8_t result = check_files(input_file, output_file, disk_space.result, file_size.result - 2, 0);
+    uint8_t result = check_files(input_file, output_file, disk_space.result, file_size.result - 18, 0);
 
     if (result == 1) {
         return 4; // Недостаточно места на диске
@@ -374,6 +402,39 @@ uint8_t decrypt_kyznechik_ecb(
         close_files(input_file, output_file);
         delete_threads_data(threads_data, threads_id, threads);
         return 8; // Не удалось создать ключи
+    }
+
+    uint8_t buf[16];
+    func_result const read_info = read_block_from_file(&(file_block_info){
+                                                           .file = input_file,
+                                                           .offset = *total_steps * 16,
+                                                           .data_size = 16,
+                                                           .data = buf
+                                                       }, NULL);
+    if (read_info.error != 0) {
+        kyznechik_finalize(Ks);
+        close_files(input_file, output_file);
+        delete_threads_data(threads_data, threads_id, threads);
+        return 11; // Ошибка при расшифровании (чтение последних байт)
+    }
+    result = check_password((const uint8_t**)Ks, &(file_block_info){
+                                .file = output_file,
+                                .offset = *total_steps * 16,
+                                .data_size = 16,
+                                .data = buf
+                            });
+
+    if (result == 1) {
+        kyznechik_finalize(Ks);
+        close_files(input_file, output_file);
+        delete_threads_data(threads_data, threads_id, threads);
+        return 5; // Ошибка при уменьшении выходного файла
+    }
+    if (result == 2) {
+        kyznechik_finalize(Ks);
+        close_files(input_file, output_file);
+        delete_threads_data(threads_data, threads_id, threads);
+        return 12; // Неверный пароль
     }
 
     CRITICAL_SECTION lock;
@@ -419,7 +480,6 @@ uint8_t decrypt_kyznechik_ecb(
 
     WaitForMultipleObjects(num_threads, threads, TRUE, INFINITE);
 
-    uint8_t buf[16];
     result = remove_last_bytes(&(file_block_info){
         .file = output_file,
         .offset = *total_steps * 16 - 16,

@@ -185,6 +185,22 @@ uint8_t encrypt_last_bytes(const uint8_t **Ks, uint8_t const *r, uint32_t const 
     return 0;
 }
 
+uint8_t encrypt_check(const uint8_t **Ks, file_block_info const *block_info) {
+    func_result const result = read_block_from_file(block_info, NULL);
+    if (result.error != 0) {
+        return 1; // Ошибка при чтении файла
+    }
+
+    kyznechik_encrypt_data(Ks, block_info->data, block_info->data);
+
+    func_result const f_result = write_block_to_file(block_info, NULL);
+    if (f_result.error != 0) {
+        return 1; // Ошибка при записи в файл
+    }
+
+    return 0;
+}
+
 uint8_t encrypt_kyznechik_cbc(
     const WCHAR *file_in_path,
     const WCHAR *disk_out_name,
@@ -215,8 +231,15 @@ uint8_t encrypt_kyznechik_cbc(
     }
 
     uint8_t const mod = file_size.result % 16, after_file[2] = {KYZNECHIK, CBC};
-    uint32_t const meta_size = 20 + M;
+    uint32_t const meta_size = 20 + M + 16;
     uint8_t *metadata = calloc(meta_size, sizeof(uint8_t));
+    if (metadata == NULL) {
+        close_files(input_file, output_file);
+        return 6; // Не удалось считать метаданные
+    }
+    for (uint32_t i = 20 + M; i < meta_size; ++i) {
+        metadata[i] = 142;
+    }
     metadata[0] = 128;
 
     if (mod != 0) {
@@ -240,11 +263,18 @@ uint8_t encrypt_kyznechik_cbc(
     }
 
     uint8_t *initial_vector = malloc(M * sizeof(uint8_t));
+    if (initial_vector == NULL) {
+        close_files(input_file, output_file);
+        free(metadata);
+        return 6; // Не удалось считать метаданные
+    }
 
+    srand(time(NULL));
     for (uint32_t i = 0; i < M; i += 8) {
         if (!_rdrand64_step((uint64_t*)(initial_vector + i))) {
-            srand(time(NULL));
-            *(initial_vector + i) = ((uint64_t)rand()) << 32 | (uint64_t)rand();
+            for (uint32_t j = 0; j < 8; ++j) {
+                *(initial_vector + i + j) = (uint8_t)(rand() % 256);
+            }
         }
     }
 
@@ -310,6 +340,13 @@ uint8_t encrypt_kyznechik_cbc(
                                    .data_size = 16
                                });
 
+    uint8_t const read_info = encrypt_check((const uint8_t**)Ks, &(file_block_info){
+                                                .file = output_file,
+                                                .offset = *total_steps * 16 + 20 + M,
+                                                .data = metadata,
+                                                .data_size = 16
+                                            });
+
     kyznechik_finalize(Ks);
     close_files(input_file, output_file);
     free(metadata);
@@ -321,7 +358,7 @@ uint8_t encrypt_kyznechik_cbc(
     if (result == 2) {
         return 10; // Ошибка при шифровании (выделение памяти)
     }
-    if (error == 1) {
+    if (error == 1 || read_info == 1) {
         return 11; // Ошибка при шифровании (запись последних байт)
     }
     return 0;
@@ -347,6 +384,29 @@ uint8_t remove_last_bytes(file_block_info const *block_info) {
 
     if (!SetEndOfFile(block_info->file)) {
         return 2; // Ошибка при изменении размера файла
+    }
+
+    return 0;
+}
+
+int8_t check_password(const uint8_t **Ks, file_block_info const *block_info) {
+    kyznechik_decrypt_data(Ks, block_info->data, block_info->data);
+
+    for (uint8_t i = 0; i < 16; ++i) {
+        if (block_info->data[i] != 142) {
+            return 2; // Неверный пароль
+        }
+    }
+
+    LARGE_INTEGER out_file_size;
+    out_file_size.QuadPart = (int64_t)block_info->offset;
+
+    if (SetFilePointerEx(block_info->file, out_file_size, NULL, FILE_BEGIN) == 0) {
+        return 1; // Ошибка при изменении размера файла
+    }
+
+    if (!SetEndOfFile(block_info->file)) {
+        return 1; // Ошибка при изменении размера файла
     }
 
     return 0;
@@ -385,7 +445,7 @@ uint8_t decrypt_kyznechik_cbc(
     func_result f_result = read_block_from_file(
         &(file_block_info){
             .file = input_file,
-            .offset = file_size.result - 6,
+            .offset = file_size.result - 6 - 16,
             .data = (uint8_t*)&m,
             .data_size = 4
         },
@@ -398,11 +458,15 @@ uint8_t decrypt_kyznechik_cbc(
     }
 
     uint8_t *initial_vector = malloc(m * sizeof(uint8_t));
+    if (initial_vector == NULL) {
+        close_files(input_file, output_file);
+        return 6; // Не удалось считать метаданные
+    }
 
     f_result = read_block_from_file(
         &(file_block_info){
             .file = input_file,
-            .offset = file_size.result - 6 - m,
+            .offset = file_size.result - 6 - m - 16,
             .data = initial_vector,
             .data_size = m
         },
@@ -415,7 +479,7 @@ uint8_t decrypt_kyznechik_cbc(
         return 6; // Не удалось считать метаданные
     }
 
-    uint8_t result = check_files(input_file, output_file, disk_space.result, file_size.result - 6 - m, 0);
+    uint8_t result = check_files(input_file, output_file, disk_space.result, file_size.result - 6 - m - 16, 0);
     if (result == 1) {
         free(initial_vector);
         return 4; // Недостаточно места на диске
@@ -425,7 +489,7 @@ uint8_t decrypt_kyznechik_cbc(
         return 5; // Ошибка при уменьшении выходного файла
     }
 
-    *total_steps = (file_size.result - 6 - m) / 16;
+    *total_steps = (file_size.result - 6 - m) / 16 - 1;
 
     uint8_t **Ks;
     kyznechik_init();
@@ -433,6 +497,39 @@ uint8_t decrypt_kyznechik_cbc(
         close_files(input_file, output_file);
         free(initial_vector);
         return 8; // Не удалось создать ключи
+    }
+
+    uint8_t buf[16];
+    func_result const read_info = read_block_from_file(&(file_block_info){
+                                                           .file = input_file,
+                                                           .offset = *total_steps * 16 + 4 + m,
+                                                           .data_size = 16,
+                                                           .data = buf
+                                                       }, NULL);
+    if (read_info.error != 0) {
+        kyznechik_finalize(Ks);
+        close_files(input_file, output_file);
+        free(initial_vector);
+        return 11; // Ошибка при расшифровании (чтение последних байт)
+    }
+    result = check_password((const uint8_t**)Ks, &(file_block_info){
+                                .file = output_file,
+                                .offset = *total_steps * 16 + 4 + m,
+                                .data_size = 16,
+                                .data = buf
+                            });
+
+    if (result == 1) {
+        kyznechik_finalize(Ks);
+        close_files(input_file, output_file);
+        free(initial_vector);
+        return 5; // Ошибка при уменьшении выходного файла
+    }
+    if (result == 2) {
+        kyznechik_finalize(Ks);
+        close_files(input_file, output_file);
+        free(initial_vector);
+        return 12; // Неверный пароль
     }
 
     uint8_t error = 0;
@@ -448,7 +545,6 @@ uint8_t decrypt_kyznechik_cbc(
         M
     );
 
-    uint8_t buf[16];
     error = remove_last_bytes(&(file_block_info){
         .file = output_file,
         .offset = *total_steps * 16 - 16,
