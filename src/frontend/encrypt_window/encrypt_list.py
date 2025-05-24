@@ -1,11 +1,10 @@
 import os
-import pathlib
 import time
 from pathlib import Path
 from threading import Lock
 from typing import Tuple
 
-from PyQt5.QtCore import Qt, pyqtSignal, QObject, QProcess, QTimer
+from PyQt5.QtCore import Qt, pyqtSignal, QObject, QProcess
 from PyQt5.QtGui import QFontMetrics, QColor
 from PyQt5.QtWidgets import QSizePolicy, QVBoxLayout, QLabel, QHBoxLayout, QWidget
 from qfluentwidgets import CardWidget, SimpleCardWidget, PipsPager, PipsScrollButtonDisplayMode, IconWidget, \
@@ -22,7 +21,7 @@ from src.frontend.paged_list_view import PagedListView
 from src.frontend.sub_windows.file_adder_window.file_adder_window import TEncryptData, Status
 from src.locales.locales import Locales
 from src.utils.config import Config
-from src.utils.utils import find_mega_parent, get_normalized_size, get_file_icon
+from src.utils.utils import find_mega_parent
 
 locales = Locales()
 map_status_to_value: dict[Status, str] = {
@@ -228,7 +227,8 @@ class EncryptCard(CardWidget):
         match self._status:
             case Status.COMPLETED:
                 if os.path.exists(self._output_path):
-                    QProcess.startDetached('explorer', [f'/select,{os.path.normpath(self._output_path)}'])
+                    norm_path = os.path.normpath(self._input_path)
+                    QProcess.startDetached('explorer', ['/select,', norm_path])
                 else:
                     self._show_tool_tip(
                         title=self._locales.get_string('error'),
@@ -412,50 +412,6 @@ class EncryptList(SimpleCardWidget):
         self.__init_widgets()
         self._connect_widget_actions()
 
-        # file = 'F:/test'
-        # file228 = 'F:/test'
-        # file1488 = 'F:/test'
-        # QTimer.singleShot(5000, lambda: self._add_task(
-        #     {
-        #         'uid': 'u8i92wr43uy9terwuhigfsdrrgeujihsgerfdkbjdh',
-        #         'input_file': file,
-        #         'output_file': file228,
-        #         'mode': 'kyznechik-ctr',
-        #         'operation': OperationType.ENCRYPT,
-        #         'total': 1,
-        #         'current': -228,
-        #         'status': Status.WAITING,
-        #         'hash_password': 'oral_cumshot',
-        #         'file_size': get_normalized_size(self._locales, os.path.getsize(file)),
-        #         'file_icon': get_file_icon(file),
-        #         'status_description': '',
-        #         'start_time': 0,
-        #         'estimated_time_per_step': None,
-        #         'last_eta_update': 0
-        #     }
-        # ))
-        #
-        # # todo сначала получать размер из loader'a
-        # QTimer.singleShot(7000, lambda: self._add_task(
-        #     {
-        #         'uid': 'u8i92wr43uy9terwuhigfsdrrgeuhsgerfdkbjdh',
-        #         'input_file': file228 + '1',
-        #         'output_file': file1488 + '1',
-        #         'mode': 'kyznechik-ctr',
-        #         'operation': OperationType.DECRYPT,
-        #         'total': 1,
-        #         'current': -228,
-        #         'status': Status.WAITING,
-        #         'hash_password': 'oral_cumshot',
-        #         'file_size': get_normalized_size(self._locales, pathlib.Path(file228 + '1').stat().st_size),
-        #         'file_icon': get_file_icon(file228 + '1'),
-        #         'status_description': '',
-        #         'start_time': 0,
-        #         'estimated_time_per_step': None,
-        #         'last_eta_update': 0
-        #     }
-        # ))
-
     def _on_delete(self, output_path: str):
         self._encrypt_list.remove_item(output_path)
 
@@ -498,9 +454,11 @@ class EncryptList(SimpleCardWidget):
         self._pager.currentIndexChanged.connect(lambda index: self._encrypt_list.set_page(index))
 
     def _on_pagination_changed(self, current_page: int, total_pages: int):
+        self._pager.blockSignals(True)
         self._pager.setPageNumber(total_pages)
         self._pager.setVisibleNumber(min(total_pages, 50))
         self._pager.setCurrentIndex(current_page)
+        self._pager.blockSignals(False)
 
     def add_task(self, data: TEncryptData):
         try:

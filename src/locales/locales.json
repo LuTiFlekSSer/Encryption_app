@@ -369,8 +369,8 @@
       "en": "Passwords do not match"
     },
     "passwords_empty": {
-      "ru": "Пароли не могут быть пустыми",
-      "en": "Passwords cannot be empty"
+      "ru": "Пароль не может быть пустым",
+      "en": "Password cannot be empty"
     },
     "cancel": {
       "ru": "Отменить",
@@ -487,6 +487,14 @@
     "WRONG_PASSWORD": {
       "ru": "Введён неверный пароль",
       "en": "Incorrect password entered"
+    },
+    "wrong_path": {
+      "ru": "Неверный путь",
+      "en": "Invalid path"
+    },
+    "wrong_select": {
+      "ru": "Выбор не может быть пустым",
+      "en": "Selection cannot be empty"
     }
   }
 }

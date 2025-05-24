@@ -97,7 +97,7 @@ class Loader(metaclass=Singleton):
             raise FunctionNotFoundError
 
         cipher_info = ctypes.create_string_buffer(256)
-        res = self._extra_libs['read_cipher_from_file'](file_path, cipher_info)
+        res = ReadCipher(self._extra_libs['read_cipher_from_file'](file_path, cipher_info))
 
         match res:
             case ReadCipher.FILE_ERROR:
@@ -371,7 +371,6 @@ class Loader(metaclass=Singleton):
                     task.last_progress = last_progres
 
                 if task.future.done():
-                    self._file_sizes.pop(task.input_path)
                     self.events.sig_update_status.emit(task.uid, task.future.result())
 
                     record = HistoryRecord()
@@ -390,6 +389,7 @@ class Loader(metaclass=Singleton):
                     self._running[task.input_path] -= 1
                     if self._running[task.input_path] == 0:
                         del self._running[task.input_path]
+                        self._file_sizes.pop(task.input_path)
 
                     self._output_files.remove(task.output_path)
 

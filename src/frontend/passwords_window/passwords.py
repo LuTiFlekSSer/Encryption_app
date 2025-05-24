@@ -117,8 +117,6 @@ class Passwords(SimpleCardWidget):
 
         self._password_list.pagination_changed.connect(self._on_pagination_changed)
         self._pager.currentIndexChanged.connect(lambda index: self._password_list.set_page(index))
-        self._db.events.sig_add_history_record.connect(self._password_list.add_item)
-        self._db.events.sig_strip_last_history_records.connect(self._password_list.strip_last_items)
         events.sig_delete_password.connect(self._on_sig_delete_password)
         self._hmi.stackedWidget.view.aniFinished.connect(self._on_sig_ani_finished)
         self._hmi.sig_check_passwords.connect(self._on_sig_check_passwords)
@@ -276,6 +274,8 @@ class Passwords(SimpleCardWidget):
         self.sig_change_window_state.emit(False)
 
     def _on_pagination_changed(self, current_page: int, total_pages: int):
+        self._pager.blockSignals(True)
         self._pager.setPageNumber(total_pages)
         self._pager.setVisibleNumber(min(total_pages, 50))
         self._pager.setCurrentIndex(current_page)
+        self._pager.blockSignals(False)

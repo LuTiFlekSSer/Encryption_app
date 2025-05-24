@@ -172,19 +172,28 @@ uint8_t read_cipher_from_file(
 
 
 void open_files(const WCHAR *file_in_path, const WCHAR *file_out_path, HANDLE *input_file, HANDLE *output_file) {
-    *input_file = CreateFileW(
-        (LPWSTR)file_in_path,
-        GENERIC_READ | GENERIC_WRITE,
-        FILE_SHARE_READ,
-        NULL,
-        OPEN_EXISTING,
-        FILE_FLAG_OVERLAPPED,
-        NULL
-    );
-
     if (lstrcmpW(file_in_path, file_out_path) == 0) {
+        *input_file = CreateFileW(
+            (LPWSTR)file_in_path,
+            GENERIC_READ | GENERIC_WRITE,
+            0,
+            NULL,
+            OPEN_EXISTING,
+            FILE_FLAG_OVERLAPPED,
+            NULL
+        );
         *output_file = *input_file;
     } else {
+        *input_file = CreateFileW(
+            (LPWSTR)file_in_path,
+            GENERIC_READ,
+            FILE_SHARE_READ,
+            NULL,
+            OPEN_EXISTING,
+            FILE_FLAG_OVERLAPPED,
+            NULL
+        );
+
         *output_file = CreateFileW(
             (LPWSTR)file_out_path,
             GENERIC_READ | GENERIC_WRITE,

@@ -1,20 +1,25 @@
 import os.path
+import uuid
 from enum import Enum
+from pathlib import Path
 from typing import TypedDict, Optional
 
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QIcon, QColor, QFontMetrics
 from PyQt5.QtWidgets import QHBoxLayout, QWidget, QFileDialog, QVBoxLayout, QSizePolicy, QStackedWidget
 from qfluentwidgets import MessageBoxBase, SubtitleLabel, BodyLabel, LineEdit, PrimaryToolButton, FluentIcon, ComboBox, \
-    SegmentedToggleToolWidget, SegmentedWidget, PasswordLineEdit, HyperlinkLabel
+    SegmentedToggleToolWidget, SegmentedWidget, PasswordLineEdit, HyperlinkLabel, TeachingTipView, InfoBarIcon, \
+    PopupTeachingTip
 
 from src.backend.db.data_base import DataBase
 from src.backend.db.db_records import OperationType
-from src.backend.encrypt_libs.loader import Loader
+from src.backend.encrypt_libs.loader import Loader, micro_ciphers
 from src.frontend.icons.icons import CustomIcons
 from src.locales.locales import Locales
+from src.master_key_storage.master_key_storage import MasterKeyStorage
+from src.streebog.streebog import Streebog
 from src.utils.config import Config
-from src.utils.utils import find_mega_parent
+from src.utils.utils import find_mega_parent, get_file_icon, get_normalized_size
 
 
 class Status(Enum):
@@ -33,7 +38,7 @@ TEncryptData = TypedDict('TEncryptData', {
     'total': int,
     'current': int,
     'status': Status,
-    'hash_password': str,
+    'hash_password': bytes,
     'file_size': str,
     'file_icon': QIcon,
     'status_description': str,
@@ -62,6 +67,7 @@ class FilePicker(QWidget):
         self._path: str = ''
         self._locales: Locales = Locales()
         self._db: DataBase = DataBase()
+        self._loader: Loader = Loader()
 
         self.__init_widgets(text)
 
@@ -132,6 +138,35 @@ class FilePicker(QWidget):
         self._layout.addWidget(self._le_text)
         self._layout.addWidget(self._b_picker)
 
+    def _show_message(self, message: str):
+        view = TeachingTipView(
+            title=self._locales.get_string('error'),
+            content=message,
+            icon=InfoBarIcon.ERROR,
+            parent=self,
+        )
+
+        tip = PopupTeachingTip.make(
+            view=view,
+            target=self._le_text,
+            duration=-1,
+            parent=self
+        )
+
+        view.closed.connect(tip.close)
+
+    def validate(self, check_without_file: bool = False) -> bool:
+        if check_without_file:
+            check_path = Path(self._path).parent
+        else:
+            check_path = self._path
+
+        if not os.path.exists(check_path):
+            self._show_message(self._locales.get_string('wrong_path'))
+            return False
+
+        return True
+
 
 class TitledComboBox(QWidget):
     def __init__(self, text: str, parent=None):
@@ -155,12 +190,37 @@ class TitledComboBox(QWidget):
         self.cb_items.clear()
         self.cb_items.addItems(items)
 
+    def get_selected(self) -> str:
+        return self.cb_items.currentText()
+
+    def validate(self) -> bool:
+        if self.cb_items.currentText() == '':
+            view = TeachingTipView(
+                title=Locales().get_string('error'),
+                content=Locales().get_string('wrong_select'),
+                icon=InfoBarIcon.ERROR,
+                parent=self,
+            )
+
+            tip = PopupTeachingTip.make(
+                view=view,
+                target=self.cb_items,
+                duration=-1,
+                parent=self
+            )
+
+            view.closed.connect(tip.close)
+            return False
+
+        return True
+
 
 class NewPasswordWidget(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent=parent)
 
         self._locales: Locales = Locales()
+        self._streebog: Streebog = Streebog()
 
         from src.frontend.hmi import MainWindow
         self._hmi: MainWindow = find_mega_parent(self)
@@ -184,17 +244,49 @@ class NewPasswordWidget(QWidget):
 
         self._btn_save.clicked.connect(self._hmi.sig_check_passwords.emit)
 
+    def get_password_hash(self) -> bytes:
+        password = self._le_password.text().strip()
+        return self._streebog.calc_hash(password.encode())
+
     def get_password(self) -> str:
         return self._le_password.text().strip()
+
+    def validate(self) -> bool:
+        password = self.get_password_hash()
+        if not password:
+            view = TeachingTipView(
+                title=self._locales.get_string('error'),
+                content=self._locales.get_string('passwords_empty'),
+                icon=InfoBarIcon.ERROR,
+                parent=self,
+            )
+
+            tip = PopupTeachingTip.make(
+                view=view,
+                target=self._le_password,
+                duration=-1,
+                parent=self
+            )
+
+            view.closed.connect(tip.close)
+            return False
+
+        return True
 
 
 class SavedPasswordWidget(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent=parent)
 
+        self._db: DataBase = DataBase()
+        self._key_storage: MasterKeyStorage = MasterKeyStorage()
+
         self._layout: QVBoxLayout = QVBoxLayout(self)
-        self.cb_password: ComboBox = ComboBox(self)
+        self._cb_password: ComboBox = ComboBox(self)
         self._widget: QWidget = QWidget(self)
+
+        self._passwords: dict[str, str] = {}
+        self._raw_passwords: list[str] = []
 
         self.__init_widgets()
 
@@ -202,8 +294,63 @@ class SavedPasswordWidget(QWidget):
         self._layout.setContentsMargins(0, 0, 0, 0)
         self._layout.setSpacing(0)
 
-        self._layout.addWidget(self.cb_password)
+        self._layout.addWidget(self._cb_password)
         self._layout.addWidget(self._widget)
+
+    def update_items(self, passwords: list[str]):
+        self._raw_passwords = passwords
+
+    def get_selected_password_hash(self) -> bytes:
+        password_name = self._passwords[(self._cb_password.currentText())]
+
+        encrypted_password_hash = self._db.get_password(password_name)
+        cipher_mode = self._db.get_setting('password_cipher')
+
+        password_hash = micro_ciphers[cipher_mode](
+            self._key_storage.master_key,
+            encrypted_password_hash,
+            OperationType.DECRYPT
+        )
+
+        return password_hash
+
+    @staticmethod
+    def _get_elided_text(widget: ComboBox, text: str):
+        metrics = QFontMetrics(widget.font())
+        elided = metrics.elidedText(text, Qt.ElideMiddle, widget.width() - 44)
+        return elided
+
+    def showEvent(self, a0):
+        super().showEvent(a0)
+
+        self._cb_password.clear()
+
+        for password in self._raw_passwords:
+            elided_password = self._get_elided_text(self._cb_password, password)
+            self._passwords[elided_password] = password
+
+            self._cb_password.addItem(elided_password)
+
+    def validate(self) -> bool:
+        if not self._cb_password.currentText():
+            view = TeachingTipView(
+                title=Locales().get_string('error'),
+                content=Locales().get_string('wrong_select'),
+                icon=InfoBarIcon.ERROR,
+                parent=self,
+            )
+
+            tip = PopupTeachingTip.make(
+                view=view,
+                target=self._cb_password,
+                duration=-1,
+                parent=self
+            )
+
+            view.closed.connect(tip.close)
+            return False
+
+        return True
 
 
 class PasswordPicker(QWidget):
@@ -233,9 +380,8 @@ class PasswordPicker(QWidget):
         self._l_password.setTextColor(QColor(Config.GRAY_COLOR_900), QColor(Config.GRAY_COLOR_50))
         self._l_password.setText(self._locales.get_string('password'))
 
-        self._password_widget.setObjectName("password_widget")
-
-        self._saved_passwords.setObjectName("cb_password")
+        self._password_widget.setObjectName('password_widget')
+        self._saved_passwords.setObjectName('cb_password')
 
         self._stacked_widget.addWidget(self._password_widget)
         self._stacked_widget.addWidget(self._saved_passwords)
@@ -276,8 +422,7 @@ class PasswordPicker(QWidget):
             return
 
         if result:
-            self._saved_passwords.cb_password.clear()
-            self._saved_passwords.cb_password.addItems([password.name for password in self._db.get_all_passwords()])
+            self._saved_passwords.update_items([password.name for password in self._db.get_all_passwords()])
             self._stacked_widget.setCurrentWidget(self._saved_passwords)
         else:
             self._stacked_widget.setCurrentWidget(self._password_widget)
@@ -286,6 +431,20 @@ class PasswordPicker(QWidget):
     def _on_sig_current_index_changed(self, index: int):
         widget = self._stacked_widget.widget(index)
         self._sw_mode.setCurrentItem(widget.objectName())
+
+    def validate(self) -> bool:
+        if self._sw_mode.currentRouteKey() == self._password_widget.objectName():
+            return self._password_widget.validate()
+        elif self._sw_mode.currentRouteKey() == self._saved_passwords.objectName():
+            return self._saved_passwords.validate()
+
+        return False
+
+    def get_password_hash(self) -> bytes:
+        if self._sw_mode.currentRouteKey() == self._password_widget.objectName():
+            return self._password_widget.get_password_hash()
+        else:
+            return self._saved_passwords.get_selected_password_hash()
 
 
 class FileAdder(MessageBoxBase):
@@ -376,4 +535,52 @@ class FileAdder(MessageBoxBase):
         self._cb_mode.setVisible(False)
 
     def validate(self) -> bool:
-        pass
+        if not self._input_picker.validate():
+            return False
+
+        if not self._output_picker.validate(True):
+            return False
+
+        if self._tw_task_type.currentRouteKey() == OperationType.ENCRYPT.name:
+            if not self._cb_cipher.validate():
+                return False
+
+            if not self._cb_mode.validate():
+                return False
+
+        if not self._password_picker.validate():
+            return False
+
+        return True
+
+    def get_data(self) -> TEncryptData:
+        if not os.path.exists(self._output_picker.get_path()):
+            with open(self._output_picker.get_path(), 'w'):
+                pass
+
+        password_hash = self._password_picker.get_password_hash()
+
+        try:
+            file_size = self._loader.get_file_size(self._input_picker.get_path())
+        except FileNotFoundError:
+            file_size = os.path.getsize(self._input_picker.get_path())
+
+        data: TEncryptData = {
+            'uid': str(uuid.uuid4()),
+            'input_file': self._input_picker.get_path(),
+            'output_file': self._output_picker.get_path(),
+            'mode': f'{self._cb_cipher.get_selected()}-{self._cb_mode.get_selected()}',
+            'operation': OperationType[self._tw_task_type.currentRouteKey()],
+            'total': 1,
+            'current': -228,
+            'status': Status.WAITING,
+            'hash_password': password_hash,
+            'file_size': get_normalized_size(self._locales, file_size),
+            'file_icon': get_file_icon(self._input_picker.get_path()),
+            'status_description': '',
+            'start_time': 0,
+            'estimated_time_per_step': None,
+            'last_eta_update': 0
+        }
+
+        return data

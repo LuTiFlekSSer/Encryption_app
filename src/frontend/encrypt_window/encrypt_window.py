@@ -62,6 +62,7 @@ class EncryptWindow(QWidget):
         file_adder.cancelButton.setText(self._locales.get_string('cancel'))
 
         if file_adder.exec():
-            pass
+            data = file_adder.get_data()
+            self._encrypt_list.add_task(data)
 
         sip.delete(file_adder)

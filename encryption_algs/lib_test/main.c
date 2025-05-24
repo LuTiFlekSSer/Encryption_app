@@ -27,10 +27,10 @@ int main() {
     uint64_t curr = 0, total = 0;
     int result = 0;
 
-    result = encrypt_magma_cbc(
-        L"../../../input.txt",
+    result = encrypt_kyznechik_cbc(
+        L"C:\\Users\\boris\\Downloads\\input.txt",
         L"C:\\",
-        L"../../../input.txt",
+        L"C:\\Users\\boris\\Downloads\\input.txt",
         kyznechik_key,
         6,
         &curr,
@@ -40,15 +40,15 @@ int main() {
     printf("%d\n", result);
     printf("%llu %llu\n", curr, total);
 
-    result = decrypt_magma_cbc(
-        L"../../../input.txt",
-        L"C:\\",
-        L"../../../input.txt",
-        kyznechik_key,
-        6,
-        &curr,
-        &total
-    );
+    // result = decrypt_kyznechik_cbc(
+    //     L"C:\\Users\\boris\\Downloads\\input.txt",
+    //     L"C:\\",
+    //     L"C:\\Users\\boris\\Downloads\\input.txt",
+    //     kyznechik_key,
+    //     6,
+    //     &curr,
+    //     &total
+    // );
 
     printf("%d\n", result);
     printf("%llu %llu\n", curr, total);

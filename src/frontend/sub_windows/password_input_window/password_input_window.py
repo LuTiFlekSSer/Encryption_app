@@ -5,6 +5,7 @@ from qfluentwidgets import MessageBoxBase, SubtitleLabel, PasswordLineEdit, Teac
 
 from src.backend.db.data_base import DataBase
 from src.backend.db.db_records import OperationType
+from src.backend.encrypt_libs.errors import InvalidKeyError
 from src.backend.encrypt_libs.loader import micro_ciphers
 from src.frontend.sub_windows.message_box.message_box import MessageBox
 from src.locales.locales import Locales
@@ -48,13 +49,16 @@ class PasswordInput(MessageBoxBase):
         encrypted_signature = self._db.get_password_signature()
         cipher_mode = self._db.get_setting('password_cipher')
 
-        signature = micro_ciphers[cipher_mode](
-            self._le_password.text().strip(),
-            encrypted_signature,
-            OperationType.DECRYPT
-        )
+        try:
+            signature = micro_ciphers[cipher_mode](
+                self._le_password.text().strip(),
+                encrypted_signature,
+                OperationType.DECRYPT
+            )
 
-        return signature == Config.SIGNATURE
+            return signature == Config.SIGNATURE
+        except InvalidKeyError:
+            return False
 
     def _on_reset_master_key(self):
         message_box = MessageBox(title=self._locales.get_string('reset_master_key_description'),
