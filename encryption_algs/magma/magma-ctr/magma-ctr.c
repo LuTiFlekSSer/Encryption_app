@@ -106,7 +106,8 @@ DWORD WINAPI magma_ctr_thread(LPVOID raw_data) {
             return 1; // Ошибка при обработке файла
         }
 
-        input_file_info.offset = output_file_info.offset = total * BUF_SIZE + data->start * data->s_data->CIPHER_BLOCK_SIZE;
+        input_file_info.offset = output_file_info.offset = total * BUF_SIZE + data->start * data->s_data->
+            CIPHER_BLOCK_SIZE;
         input_file_info.data_size = output_file_info.data_size = mod;
 
         if (process_block((const uint8_t**)data->Ks,
@@ -148,6 +149,22 @@ uint8_t encrypt_last_bytes(const uint8_t **Ks, uint64_t gamma, file_block_info c
     return 0;
 }
 
+uint8_t encrypt_check(const uint8_t **Ks, file_block_info const *block_info) {
+    func_result const result = read_block_from_file(block_info, NULL);
+    if (result.error != 0) {
+        return 1; // Ошибка при чтении файла
+    }
+
+    magma_encrypt_data(Ks, block_info->data, block_info->data);
+
+    func_result const f_result = write_block_to_file(block_info, NULL);
+    if (f_result.error != 0) {
+        return 1; // Ошибка при записи в файл
+    }
+
+    return 0;
+}
+
 uint8_t encrypt_magma_ctr(
     const WCHAR *file_in_path,
     const WCHAR *disk_out_name,
@@ -179,12 +196,17 @@ uint8_t encrypt_magma_ctr(
 
     uint8_t const mod = 5,
                   after_file[2] = {MAGMA, CTR};
-    uint8_t metadata[8];
+    uint8_t metadata[13];
+    for (uint32_t i = mod; i < 13; ++i) {
+        metadata[i] = 142;
+    }
 
     uint32_t initial_vector;
+    srand(time(NULL));
     if (!_rdrand32_step(&initial_vector)) {
-        srand(time(NULL));
-        initial_vector = (uint32_t)rand();
+        for (uint8_t i = 0; i < 4; ++i) {
+            ((uint8_t*)&initial_vector)[i] = (uint8_t)(rand() % 256);
+        }
     }
 
     uint64_t ctr = (uint64_t)initial_vector << 32;
@@ -197,7 +219,7 @@ uint8_t encrypt_magma_ctr(
     *total_steps = file_size.result / s_data.CIPHER_BLOCK_SIZE;
     uint8_t const last_bytes = file_size.result % s_data.CIPHER_BLOCK_SIZE;
 
-    uint8_t result = check_files(input_file, output_file, disk_space.result, file_size.result, mod + 2);
+    uint8_t result = check_files(input_file, output_file, disk_space.result, file_size.result, mod + 2 + 8);
 
     if (result == 1) {
         return 4; // Недостаточно места на диске
@@ -210,15 +232,14 @@ uint8_t encrypt_magma_ctr(
         output_file,
         file_size.result,
         metadata,
-        (uint32_t)mod,
+        (uint32_t)mod + 8,
         after_file
     );
 
-    if (f_result.error || f_result.result != mod + 2) {
+    if (f_result.error || f_result.result != mod + 2 + 8) {
         close_files(input_file, output_file);
         return 6; // Не удалось записать метаданные
     }
-
 
     f_result = read_block_from_file(
         &(file_block_info){
@@ -234,7 +255,6 @@ uint8_t encrypt_magma_ctr(
         close_files(input_file, output_file);
         return 6; // Не удалось считать метаданные
     }
-
 
     thread_data *threads_data;
     DWORD *threads_id;
@@ -305,6 +325,13 @@ uint8_t encrypt_magma_ctr(
                                     .data_size = last_bytes
                                 });
 
+    uint8_t const read_info = encrypt_check((const uint8_t**)Ks, &(file_block_info){
+                                                .file = output_file,
+                                                .offset = *total_steps * s_data.CIPHER_BLOCK_SIZE + last_bytes + mod,
+                                                .data = metadata,
+                                                .data_size = 8
+                                            });
+
     for (uint16_t i = 0; i < num_threads; ++i) {
         CloseHandle(threads[i]);
     }
@@ -319,7 +346,7 @@ uint8_t encrypt_magma_ctr(
     if (error == 2) {
         return 10; // Ошибка при шифровании (выделение памяти)
     }
-    if (result == 1) {
+    if (result == 1 || read_info == 1) {
         return 11; // Ошибка при шифровании (запись последних байт)
     }
     return 0;
@@ -327,13 +354,13 @@ uint8_t encrypt_magma_ctr(
 
 uint8_t remove_last_bytes(HANDLE output_file, uint64_t const file_size) {
     LARGE_INTEGER out_file_size;
-    out_file_size.QuadPart = (int64_t)file_size - 7;
+    out_file_size.QuadPart = (int64_t)file_size - 7 - 8;
 
     if (SetFilePointerEx(output_file, out_file_size, NULL, FILE_BEGIN) == 0) {
         return 1; // Ошибка при изменении размера файла
     }
 
-    if (!SetEndOfFile(output_file)) {
+    if (SetEndOfFile(output_file) == 0) {
         return 1; // Ошибка при изменении размера файла
     }
     return 0;
@@ -368,19 +395,11 @@ uint8_t decrypt_magma_ctr(
         return 3; // Не удалось получить размер файла
     }
 
-    uint8_t result = check_files(input_file, output_file, disk_space.result, file_size.result - 7, 0);
-    if (result == 1) {
-        return 4; // Недостаточно места на диске
-    }
-    if (result == 2) {
-        return 5; // Ошибка при увеличении выходного файла
-    }
-
     uint8_t metadata[8];
     func_result f_result = read_block_from_file(
         &(file_block_info){
             .file = input_file,
-            .offset = file_size.result - 7,
+            .offset = file_size.result - 7 - 8,
             .data = metadata,
             .data_size = 5
         },
@@ -399,23 +418,8 @@ uint8_t decrypt_magma_ctr(
     memcpy(&initial_vector, metadata, 4);
     uint64_t const ctr = (uint64_t)initial_vector << 32;
 
-    *total_steps = (file_size.result - 7) / s_data.CIPHER_BLOCK_SIZE;
-    uint8_t const last_bytes = (file_size.result - 7) % s_data.CIPHER_BLOCK_SIZE;
-
-    f_result = read_block_from_file(
-        &(file_block_info){
-            .file = input_file,
-            .offset = *total_steps * s_data.CIPHER_BLOCK_SIZE,
-            .data = metadata,
-            .data_size = last_bytes
-        },
-        NULL
-    );
-
-    if (f_result.error != 0) {
-        close_files(input_file, output_file);
-        return 6; // Не удалось считать метаданные
-    }
+    *total_steps = (file_size.result - 7 - 8) / s_data.CIPHER_BLOCK_SIZE;
+    uint8_t const last_bytes = (file_size.result - 7 - 8) % s_data.CIPHER_BLOCK_SIZE;
 
     thread_data *threads_data;
     DWORD *threads_id;
@@ -432,6 +436,55 @@ uint8_t decrypt_magma_ctr(
         close_files(input_file, output_file);
         delete_threads_data(threads_data, threads_id, threads);
         return 8; // Не удалось создать ключи
+    }
+
+    func_result const read_info = read_block_from_file(&(file_block_info){
+                                                           .file = input_file,
+                                                           .offset = file_size.result - 2 - 8,
+                                                           .data_size = 8,
+                                                           .data = metadata
+                                                       }, NULL);
+    if (read_info.error != 0) {
+        magma_finalize(Ks);
+        close_files(input_file, output_file);
+        delete_threads_data(threads_data, threads_id, threads);
+        return 11; // Ошибка при расшифровании (чтение последних байт)
+    }
+
+    magma_decrypt_data((const uint8_t**)Ks, metadata, metadata);
+    for (uint8_t i = 0; i < 8; ++i) {
+        if (metadata[i] != 142) {
+            magma_finalize(Ks);
+            close_files(input_file, output_file);
+            delete_threads_data(threads_data, threads_id, threads);
+            return 12; // Неверный пароль
+        }
+    }
+
+    uint8_t result = check_files(input_file, output_file, disk_space.result, file_size.result - 7 - 8, 0);
+    if (result == 1) {
+        magma_finalize(Ks);
+        delete_threads_data(threads_data, threads_id, threads);
+        return 4; // Недостаточно места на диске
+    }
+    if (result == 2) {
+        magma_finalize(Ks);
+        delete_threads_data(threads_data, threads_id, threads);
+        return 5; // Ошибка при увеличении выходного файла
+    }
+    f_result = read_block_from_file(
+        &(file_block_info){
+            .file = input_file,
+            .offset = *total_steps * s_data.CIPHER_BLOCK_SIZE,
+            .data = metadata,
+            .data_size = last_bytes
+        },
+        NULL
+    );
+
+    if (f_result.error != 0) {
+        close_files(input_file, output_file);
+        return 6; // Не удалось считать метаданные
     }
 
     CRITICAL_SECTION lock;

@@ -50,7 +50,6 @@ int main() {
         &total
     );
 
-
     printf("%d\n", result);
     printf("%llu %llu\n", curr, total);
 

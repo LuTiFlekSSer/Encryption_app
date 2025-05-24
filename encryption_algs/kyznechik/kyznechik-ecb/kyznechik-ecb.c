@@ -317,31 +317,8 @@ uint8_t remove_last_bytes(file_block_info const *block_info) {
         return 2; // Ошибка при изменении размера файла
     }
 
-    if (!SetEndOfFile(block_info->file)) {
+    if (SetEndOfFile(block_info->file) == 0) {
         return 2; // Ошибка при изменении размера файла
-    }
-
-    return 0;
-}
-
-int8_t check_password(const uint8_t **Ks, file_block_info const *block_info) {
-    kyznechik_decrypt_data(Ks, block_info->data, block_info->data);
-
-    for (uint8_t i = 0; i < 16; ++i) {
-        if (block_info->data[i] != 142) {
-            return 2; // Неверный пароль
-        }
-    }
-
-    LARGE_INTEGER out_file_size;
-    out_file_size.QuadPart = (int64_t)block_info->offset;
-
-    if (SetFilePointerEx(block_info->file, out_file_size, NULL, FILE_BEGIN) == 0) {
-        return 1; // Ошибка при изменении размера файла
-    }
-
-    if (!SetEndOfFile(block_info->file)) {
-        return 1; // Ошибка при изменении размера файла
     }
 
     return 0;
@@ -378,15 +355,6 @@ uint8_t decrypt_kyznechik_ecb(
 
     *total_steps = file_size.result / 16 - 1;
 
-    uint8_t result = check_files(input_file, output_file, disk_space.result, file_size.result - 18, 0);
-
-    if (result == 1) {
-        return 4; // Недостаточно места на диске
-    }
-    if (result == 2) {
-        return 5; // Ошибка при увеличении выходного файла
-    }
-
     thread_data *threads_data;
     DWORD *threads_id;
     HANDLE *threads;
@@ -417,24 +385,28 @@ uint8_t decrypt_kyznechik_ecb(
         delete_threads_data(threads_data, threads_id, threads);
         return 11; // Ошибка при расшифровании (чтение последних байт)
     }
-    result = check_password((const uint8_t**)Ks, &(file_block_info){
-                                .file = output_file,
-                                .offset = *total_steps * 16,
-                                .data_size = 16,
-                                .data = buf
-                            });
+
+    kyznechik_decrypt_data((const uint8_t**)Ks, buf, buf);
+    for (uint8_t i = 0; i < 16; ++i) {
+        if (buf[i] != 142) {
+            kyznechik_finalize(Ks);
+            close_files(input_file, output_file);
+            delete_threads_data(threads_data, threads_id, threads);
+            return 12; // Неверный пароль
+        }
+    }
+
+    uint8_t result = check_files(input_file, output_file, disk_space.result, *total_steps * 16, 0);
 
     if (result == 1) {
         kyznechik_finalize(Ks);
-        close_files(input_file, output_file);
         delete_threads_data(threads_data, threads_id, threads);
-        return 5; // Ошибка при уменьшении выходного файла
+        return 4; // Недостаточно места на диске
     }
     if (result == 2) {
         kyznechik_finalize(Ks);
-        close_files(input_file, output_file);
         delete_threads_data(threads_data, threads_id, threads);
-        return 12; // Неверный пароль
+        return 5; // Ошибка при увеличении выходного файла
     }
 
     CRITICAL_SECTION lock;

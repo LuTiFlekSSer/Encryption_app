@@ -229,14 +229,12 @@ uint8_t check_files(
         LARGE_INTEGER out_file_size;
         out_file_size.QuadPart = (int64_t)file_size;
 
-        int result = SetFilePointerEx(output_file, out_file_size, NULL, FILE_BEGIN);
-        if (!result) {
+        if (SetFilePointerEx(output_file, out_file_size, NULL, FILE_BEGIN) == 0) {
             close_files(input_file, output_file);
             return 2; // ошибка при увеличении выходного файла
         }
 
-        result = SetEndOfFile(output_file);
-        if (!result) {
+        if (SetEndOfFile(output_file) == 0) {
             close_files(input_file, output_file);
             return 2; // ошибка при увеличении выходного файла
         }
