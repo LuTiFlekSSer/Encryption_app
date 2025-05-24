@@ -2,7 +2,7 @@ from PyQt5.QtCore import Qt, QObject, pyqtSignal, QTimer
 from PyQt5.QtGui import QColor, QFontMetrics
 from PyQt5.QtWidgets import QSizePolicy, QHBoxLayout, QLabel, QVBoxLayout
 from qfluentwidgets import IconWidget, StrongBodyLabel, ToolButton, SimpleCardWidget, FluentIcon, PipsPager, \
-    PipsScrollButtonDisplayMode, MSFluentWindow, InfoBar, InfoBarPosition
+    PipsScrollButtonDisplayMode, InfoBar, InfoBarPosition
 
 from src.backend.db.data_base import DataBase
 from src.backend.db.db_records import OperationType
@@ -59,7 +59,7 @@ class PasswordCard(SimpleCardWidget):
         self._l_name_password.setTextColor(QColor(Config.GRAY_COLOR_900), QColor(Config.GRAY_COLOR_50))
 
         self._h_layout.addWidget(self._password_icon)
-        self._h_layout.addWidget(self._l_name_password)
+        self._h_layout.addWidget(self._l_name_password, stretch=1)
         self._h_layout.addWidget(self._btn_delete, alignment=Qt.AlignRight)
 
     def set_data(self, data: str):
@@ -88,7 +88,7 @@ class Passwords(SimpleCardWidget):
     sig_change_window_state: pyqtSignal = pyqtSignal(bool)
 
     def __init__(self, parent=None):
-        super().__init__(parent)
+        super().__init__(parent=parent)
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
 
         self._db: DataBase = DataBase()
@@ -99,7 +99,8 @@ class Passwords(SimpleCardWidget):
         self._password_list: PagedListView = PagedListView(PasswordCard, parent=self)
         self._pager: PipsPager = PipsPager(self)
 
-        self._hmi: MSFluentWindow = find_mega_parent(self)
+        from src.frontend.hmi import MainWindow
+        self._hmi: MainWindow = find_mega_parent(self)
 
         self.__init_widgets()
 
@@ -120,6 +121,15 @@ class Passwords(SimpleCardWidget):
         self._db.events.sig_strip_last_history_records.connect(self._password_list.strip_last_items)
         events.sig_delete_password.connect(self._on_sig_delete_password)
         self._hmi.stackedWidget.view.aniFinished.connect(self._on_sig_ani_finished)
+        self._hmi.sig_check_passwords.connect(self._on_sig_check_passwords)
+        self._hmi.sig_add_new_password.connect(self.add_password)
+
+    def _on_sig_check_passwords(self):
+        if not self._key_storage.master_key:
+            self.check_master_key()
+
+        result = bool(self._key_storage.master_key)
+        self._hmi.sig_passwords_check_completed.emit(result)
 
     def check_master_key(self):
         if self._db.get_setting('password_cipher') == '':
@@ -230,8 +240,9 @@ class Passwords(SimpleCardWidget):
             self._password_list.remove_item(name)
             self._db.remove_password(name)
 
-    def add_password(self):
+    def add_password(self, password: str = ''):
         password_creator = PasswordCreator(self._hmi)
+        password_creator.set_password(password)
 
         password_creator.yesButton.setText(self._locales.get_string('confirm'))
         password_creator.cancelButton.setText(self._locales.get_string('cancel'))
@@ -245,7 +256,7 @@ class Passwords(SimpleCardWidget):
                     isClosable=False,
                     position=InfoBarPosition.BOTTOM_RIGHT,
                     duration=3000,
-                    parent=self
+                    parent=self._hmi
                 )
 
                 return

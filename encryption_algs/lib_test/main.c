@@ -27,10 +27,10 @@ int main() {
     uint64_t curr = 0, total = 0;
     int result = 0;
 
-    result = encrypt_kyznechik_ctr(
+    result = encrypt_kyznechik_cbc(
         L"../../../input.txt",
         L"C:\\",
-        L"../../../input.txt",
+        L"../../../middle.txt",
         kyznechik_key,
         6,
         &curr,

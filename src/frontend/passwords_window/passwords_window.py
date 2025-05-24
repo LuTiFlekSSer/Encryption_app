@@ -12,7 +12,7 @@ from src.utils.config import Config
 
 class PasswordsWindow(QWidget):
     def __init__(self, name: str, parent=None):
-        super().__init__(parent)
+        super().__init__(parent=parent)
         self.setObjectName(name)
 
         self._locales: Locales = Locales()
@@ -26,7 +26,7 @@ class PasswordsWindow(QWidget):
         self._connect_widget_actions()
 
     def __init_widgets(self):
-        StyleSheet.HISTORY_WINDOW.apply(self)
+        StyleSheet.PASSWORDS_WINDOW.apply(self)
 
         self._l_title.setText(self._locales.get_string('passwords_title'))
         self._l_title.setTextColor(QColor(Config.GRAY_COLOR_900), QColor(Config.GRAY_COLOR_50))

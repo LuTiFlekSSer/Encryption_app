@@ -1,7 +1,7 @@
 from threading import Lock
 
 from PyQt5.QtCore import pyqtSignal, Qt, QTimer
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QScrollArea, QSizePolicy
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QSizePolicy, QScrollArea
 
 
 class PagedListView(QWidget):
@@ -78,6 +78,14 @@ class PagedListView(QWidget):
 
             self._visible_count = new_visible_count
 
+            viewport_width = self._scroll_area.viewport().width()
+            margins = self._container_layout.contentsMargins()
+            spacing = margins.left() + margins.right()
+            widget_max_width = viewport_width - spacing
+
+            for widget in self._item_widgets:
+                widget.setMaximumWidth(widget_max_width)
+
         self._update_widgets()
         self._emit_pagination_changed()
 
@@ -120,12 +128,6 @@ class PagedListView(QWidget):
     def get_total_items(self) -> int:
         with self._lock:
             return len(self._items)
-
-    def set_first_index(self, index):
-        with self._lock:
-            index = max(0, min(index, len(self._items) - 1))
-            self._first_visible_index = index
-        self._update_widgets()
 
     def set_page(self, page_number):
         if self._visible_count == 0:

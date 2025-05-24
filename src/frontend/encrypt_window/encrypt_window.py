@@ -1,3 +1,4 @@
+from PyQt5 import sip
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QColor
 from PyQt5.QtWidgets import QWidget, QVBoxLayout
@@ -62,3 +63,5 @@ class EncryptWindow(QWidget):
 
         if file_adder.exec():
             pass
+
+        sip.delete(file_adder)

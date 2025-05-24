@@ -24,6 +24,7 @@ from src.utils.config import Config
 class MainWindow(MSFluentWindow):
     sig_check_passwords: pyqtSignal = pyqtSignal()
     sig_passwords_check_completed: pyqtSignal = pyqtSignal(bool)
+    sig_add_new_password: pyqtSignal = pyqtSignal(str)
 
     sig_add_task: pyqtSignal = pyqtSignal()
 
@@ -43,6 +44,8 @@ class MainWindow(MSFluentWindow):
 
         self.resize(*map(int, self._db.get_setting('window_size').split()))
         self.setMinimumWidth(840)
+        self.setMinimumHeight(480)
+
         self.setWindowTitle(Config.APP_NAME)
         self.setWindowIcon(QIcon('res/logo.png'))
         self._center()

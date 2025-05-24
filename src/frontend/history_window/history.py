@@ -222,6 +222,8 @@ class History(SimpleCardWidget):
             self._pager.setVisibleNumber(0)
 
     def _on_pagination_changed(self, current_page: int, total_pages: int):
+        self._pager.blockSignals(True)
         self._pager.setPageNumber(total_pages)
         self._pager.setVisibleNumber(min(total_pages, 50))
         self._pager.setCurrentIndex(current_page)
+        self._pager.blockSignals(False)

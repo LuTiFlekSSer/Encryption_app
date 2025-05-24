@@ -102,3 +102,7 @@ class PasswordCreator(MessageBoxBase):
         record.password = Streebog.calc_hash(self._le_password.text().strip().encode())
 
         return record
+
+    def set_password(self, password: str):
+        self._le_password.setText(password)
+        self._le_confirm_password.setText(password)

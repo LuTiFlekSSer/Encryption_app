@@ -120,11 +120,11 @@ class FilePicker(QWidget):
         self._layout.setSpacing(4)
 
         self._l_text.setText(text)
-        self._l_text.setTextColor(Config.GRAY_COLOR_900, Config.GRAY_COLOR_50)
+        self._l_text.setTextColor(QColor(Config.GRAY_COLOR_900), QColor(Config.GRAY_COLOR_50))
 
         self._le_text.setReadOnly(True)
 
-        self._b_picker.setIcon(FluentIcon.ADD_TO)
+        self._b_picker.setIcon(FluentIcon.ADD_TO.colored(QColor(Config.GRAY_COLOR_900), QColor(Config.GRAY_COLOR_50)))
 
         self._layout.addWidget(self._l_text)
         self._layout.addSpacing(16)
@@ -162,6 +162,9 @@ class NewPasswordWidget(QWidget):
 
         self._locales: Locales = Locales()
 
+        from src.frontend.hmi import MainWindow
+        self._hmi: MainWindow = find_mega_parent(self)
+
         self._layout: QVBoxLayout = QVBoxLayout(self)
         self._le_password: PasswordLineEdit = PasswordLineEdit(self)
         self._btn_save: HyperlinkLabel = HyperlinkLabel(self)
@@ -178,6 +181,11 @@ class NewPasswordWidget(QWidget):
 
         self._layout.addWidget(self._le_password)
         self._layout.addWidget(self._btn_save)
+
+        self._btn_save.clicked.connect(self._hmi.sig_check_passwords.emit)
+
+    def get_password(self) -> str:
+        return self._le_password.text().strip()
 
 
 class SavedPasswordWidget(QWidget):
@@ -203,6 +211,7 @@ class PasswordPicker(QWidget):
         super().__init__(parent=parent)
 
         self._locales: Locales = Locales()
+        self._db: DataBase = DataBase()
 
         from src.frontend.hmi import MainWindow
         self._hmi: MainWindow = find_mega_parent(self)
@@ -252,11 +261,27 @@ class PasswordPicker(QWidget):
         self._layout.addSpacing(4)
         self._layout.addWidget(self._stacked_widget)
 
+        self._hmi.sig_passwords_check_completed.connect(self._on_sig_passwords_check_completed)
+
     def _on_saved_passwords(self):
         if self._sw_mode.currentRouteKey() == self._saved_passwords.objectName():
             self._hmi.sig_check_passwords.emit()
         else:
+            self._stacked_widget.setCurrentWidget(self._password_widget)
+
+    def _on_sig_passwords_check_completed(self, result: bool):
+        if self._sw_mode.currentRouteKey() != self._saved_passwords.objectName():
+            if result:
+                self._hmi.sig_add_new_password.emit(self._password_widget.get_password())
+            return
+
+        if result:
+            self._saved_passwords.cb_password.clear()
+            self._saved_passwords.cb_password.addItems([password.name for password in self._db.get_all_passwords()])
             self._stacked_widget.setCurrentWidget(self._saved_passwords)
+        else:
+            self._stacked_widget.setCurrentWidget(self._password_widget)
+            self._sw_mode.setCurrentItem(self._password_widget.objectName())
 
     def _on_sig_current_index_changed(self, index: int):
         widget = self._stacked_widget.widget(index)
@@ -349,3 +374,6 @@ class FileAdder(MessageBoxBase):
         self._h_layout.removeWidget(self._cb_mode)
         self._cb_cipher.setVisible(False)
         self._cb_mode.setVisible(False)
+
+    def validate(self) -> bool:
+        pass
