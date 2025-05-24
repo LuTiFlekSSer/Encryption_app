@@ -20,7 +20,7 @@ from src.locales.locales import Locales
 from src.utils.config import Config
 
 
-# todo при запуске шифрования проверить, что библиотеки не удалили, если удалили -> функция из passwords_window
+# todo в message box на enter сделать подтверждение
 class MainWindow(MSFluentWindow):
     sig_check_passwords: pyqtSignal = pyqtSignal()
     sig_passwords_check_completed: pyqtSignal = pyqtSignal(bool)
