@@ -13,6 +13,7 @@ from src.frontend.sub_windows.master_key_creator_window.master_key_creator impor
 from src.frontend.sub_windows.message_box.message_box import MessageBox
 from src.frontend.sub_windows.password_creator_window.password_creator_window import PasswordCreator
 from src.frontend.sub_windows.password_input_window.password_input_window import PasswordInput
+from src.global_flags import GlobalFlags
 from src.locales.locales import Locales
 from src.master_key_storage.master_key_storage import MasterKeyStorage
 from src.utils.config import Config
@@ -94,6 +95,7 @@ class Passwords(SimpleCardWidget):
         self._db: DataBase = DataBase()
         self._locales: Locales = Locales()
         self._key_storage: MasterKeyStorage = MasterKeyStorage()
+        self._global_flags: GlobalFlags = GlobalFlags()
 
         self._vl_view_layout: QVBoxLayout = QVBoxLayout(self)
         self._password_list: PagedListView = PagedListView(PasswordCard, parent=self)
@@ -168,6 +170,7 @@ class Passwords(SimpleCardWidget):
     def check_master_key(self):
         if self._db.get_setting('password_cipher') == '':
             self._master_key_creator.reset()
+            self._global_flags.modal_open.set()
 
             if self._master_key_creator.exec():
                 self._key_storage.master_key = self._master_key_creator.get_password()
@@ -184,20 +187,29 @@ class Passwords(SimpleCardWidget):
                 self.sig_change_window_state.emit(False)
                 if self._hmi.stackedWidget.currentWidget() is self.parent():
                     self._hmi.navigationInterface.history.pop()
+
+            self._global_flags.modal_open.clear()
+
         else:
             if self._db.get_setting('password_cipher') not in micro_ciphers:
+                self._global_flags.modal_open.set()
+
                 if self._mb_func_not_found.exec():
                     self.reset_master_key(True)
+
 
                 else:
                     self.sig_change_window_state.emit(False)
                     if self._hmi.stackedWidget.currentWidget() is self.parent():
                         self._hmi.navigationInterface.history.pop()
 
+                self._global_flags.modal_open.clear()
+
                 return
             else:
                 if self._key_storage.master_key == '':
                     self._password_input.reset()
+                    self._global_flags.modal_open.set()
 
                     if self._password_input.exec():
                         if self._password_input.need_reset():
@@ -213,18 +225,26 @@ class Passwords(SimpleCardWidget):
                         if self._hmi.stackedWidget.currentWidget() is self.parent():
                             self._hmi.navigationInterface.history.pop()
 
+                    self._global_flags.modal_open.clear()
+
     def _on_sig_ani_finished(self):
         if self._hmi.stackedWidget.currentWidget() is self.parent():
             QTimer.singleShot(0, self.check_master_key)
 
     def clear_passwords(self):
+        self._global_flags.modal_open.set()
+
         if self._mb_clear_passwords.exec():
             self._password_list.clear_items()
             self._db.remove_all_passwords()
             self._pager.setPageNumber(0)
             self._pager.setVisibleNumber(0)
 
+        self._global_flags.modal_open.clear()
+
     def reset_master_key(self, skip_message: bool = False):
+        self._global_flags.modal_open.set()
+
         if skip_message or self._mb_reset_master_key.exec():
             self._key_storage.master_key = ''
             self._password_list.clear_items()
@@ -236,14 +256,22 @@ class Passwords(SimpleCardWidget):
             self.sig_change_window_state.emit(False)
             self.check_master_key()
 
+        self._global_flags.modal_open.clear()
+
     def _on_sig_delete_password(self, name: str):
+        self._global_flags.modal_open.set()
+
         if self._mb_remove_password.exec():
             self._password_list.remove_item(name)
             self._db.remove_password(name)
 
+        self._global_flags.modal_open.clear()
+
     def add_password(self, password: str = ''):
         self._password_creator.reset()
         self._password_creator.set_password(password)
+
+        self._global_flags.modal_open.set()
 
         if self._password_creator.exec():
             if (record := self._password_creator.get_password_record()).name in self._password_list.items_dict:
@@ -258,6 +286,8 @@ class Passwords(SimpleCardWidget):
                 )
 
                 return
+
+            self._global_flags.modal_open.clear()
 
             encrypt_function = micro_ciphers[self._db.get_setting('password_cipher')]
             record.password = encrypt_function(self._key_storage.master_key,

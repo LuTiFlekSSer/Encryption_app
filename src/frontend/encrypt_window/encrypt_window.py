@@ -7,6 +7,7 @@ from src.frontend.encrypt_window.encrypt_list import EncryptList
 from src.frontend.encrypt_window.encrypt_menu import EncryptMenu
 from src.frontend.style_sheets.style_sheets import StyleSheet
 from src.frontend.sub_windows.file_adder_window.file_adder_window import FileAdder
+from src.global_flags import GlobalFlags
 from src.locales.locales import Locales
 from src.utils.config import Config
 from src.utils.utils import find_mega_parent
@@ -23,6 +24,8 @@ class EncryptWindow(QWidget):
         self._l_title: LargeTitleLabel = LargeTitleLabel(self)
         self._encrypt_menu: EncryptMenu = EncryptMenu(self)
         self._encrypt_list: EncryptList = EncryptList(self)
+
+        self._global_flags: GlobalFlags = GlobalFlags()
 
         from src.frontend.hmi import MainWindow
         self._hmi: MainWindow = find_mega_parent(self)
@@ -61,7 +64,10 @@ class EncryptWindow(QWidget):
             self._hmi.stackedWidget.setCurrentWidget(self)
 
         self._file_adder.reset()
+        self._global_flags.modal_open.set()
 
         if self._file_adder.exec():
             data = self._file_adder.get_data()
             self._encrypt_list.add_task(data)
+
+        self._global_flags.modal_open.clear()

@@ -9,6 +9,7 @@ from src.backend.db.db_records import OperationType
 from src.backend.encrypt_libs.errors import InvalidKeyError
 from src.backend.encrypt_libs.loader import micro_ciphers
 from src.frontend.sub_windows.message_box.message_box import MessageBox
+from src.global_flags import GlobalFlags
 from src.locales.locales import Locales
 from src.utils.config import Config
 from src.utils.utils import find_mega_parent
@@ -25,6 +26,7 @@ class PasswordInput(MessageBoxBase):
 
         self._locales: Locales = Locales()
         self._db: DataBase = DataBase()
+        self._global_flags: GlobalFlags = GlobalFlags()
 
         self._hmi: QWidget = find_mega_parent(self)
         self._need_reset: bool = False
@@ -68,9 +70,13 @@ class PasswordInput(MessageBoxBase):
             return False
 
     def _on_reset_master_key(self):
+        self._global_flags.modal_open.set()
+
         if self._mb_reset_master_key.exec():
             self._need_reset = True
             self.accept()
+
+        self._global_flags.modal_open.clear()
 
     def validate(self) -> bool:
         if self._le_password.text().strip() == '':

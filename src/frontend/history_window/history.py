@@ -14,6 +14,7 @@ from src.backend.db.db_records import HistoryRecord, OperationType
 from src.frontend.icons.icons import CustomIcons
 from src.frontend.paged_list_view import PagedListView
 from src.frontend.sub_windows.message_box.message_box import MessageBox
+from src.global_flags import GlobalFlags
 from src.locales.locales import Locales
 from src.utils.config import Config
 from src.utils.utils import find_mega_parent
@@ -184,6 +185,8 @@ class History(SimpleCardWidget):
 
         self._db: DataBase = DataBase()
         self._locales: Locales = Locales()
+        self._global_flags: GlobalFlags = GlobalFlags()
+
         self._vl_view_layout: QVBoxLayout = QVBoxLayout(self)
         self._history_list: PagedListView = PagedListView(HistoryCard, parent=self)
         self._pager: PipsPager = PipsPager(self)
@@ -215,11 +218,15 @@ class History(SimpleCardWidget):
         self._db.events.sig_strip_last_history_records.connect(self._history_list.strip_last_items)
 
     def clear(self):
+        self._global_flags.modal_open.set()
+
         if self._mb_clear_history.exec():
             self._history_list.clear_items()
             self._db.clear_history()
             self._pager.setPageNumber(0)
             self._pager.setVisibleNumber(0)
+
+        self._global_flags.modal_open.clear()
 
     def _on_pagination_changed(self, current_page: int, total_pages: int):
         self._pager.blockSignals(True)

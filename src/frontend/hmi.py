@@ -9,6 +9,7 @@ from qfluentwidgets import SplashScreen, FluentIcon, MSFluentWindow, NavigationI
 from qframelesswindow.utils import getSystemAccentColor
 
 from src.backend.db.data_base import DataBase
+from src.backend.db.db_records import OperationType
 from src.frontend.encrypt_window.encrypt_window import EncryptWindow
 from src.frontend.history_window.history_window import HistoryWindow
 from src.frontend.home_window.home_window import HomeWindow
@@ -20,11 +21,11 @@ from src.locales.locales import Locales
 from src.utils.config import Config
 
 
-# todo в message box на enter сделать подтверждение
 class MainWindow(MSFluentWindow):
     sig_check_passwords: pyqtSignal = pyqtSignal()
     sig_passwords_check_completed: pyqtSignal = pyqtSignal(bool)
     sig_add_new_password: pyqtSignal = pyqtSignal(str)
+    sig_external_command: pyqtSignal = pyqtSignal(OperationType, str)
 
     sig_add_task: pyqtSignal = pyqtSignal()
 

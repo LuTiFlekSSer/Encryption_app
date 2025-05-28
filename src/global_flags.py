@@ -7,3 +7,4 @@ class GlobalFlags(metaclass=Singleton):
     def __init__(self):
         self.stop_event: Event = Event()
         self.is_running: Event = Event()
+        self.modal_open: Event = Event()
