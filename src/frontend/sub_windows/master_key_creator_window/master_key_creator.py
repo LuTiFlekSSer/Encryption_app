@@ -116,3 +116,16 @@ class MasterKeyCreator(MessageBoxBase):
 
     def get_encrypt_mode(self) -> str:
         return self._cb_encrypt_mode.currentText().strip()
+
+    def keyPressEvent(self, a0):
+        if a0.key() in (Qt.Key_Return, Qt.Key_Enter):
+            self.yesButton.clicked.emit()
+        else:
+            super().keyPressEvent(a0)
+
+    def reset(self):
+        self._le_password.clear()
+        self._le_confirm_password.clear()
+
+        self._cb_encrypt_mode.clear()
+        self._cb_encrypt_mode.addItems(micro_ciphers.keys())

@@ -1,4 +1,3 @@
-from PyQt5 import sip
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QColor
 from PyQt5.QtWidgets import QWidget, QVBoxLayout
@@ -27,6 +26,10 @@ class EncryptWindow(QWidget):
 
         from src.frontend.hmi import MainWindow
         self._hmi: MainWindow = find_mega_parent(self)
+
+        self._file_adder = FileAdder(self._hmi)
+        self._file_adder.yesButton.setText(self._locales.get_string('confirm'))
+        self._file_adder.cancelButton.setText(self._locales.get_string('cancel'))
 
         self.__init_widgets()
         self._connect_widget_actions()
@@ -57,12 +60,8 @@ class EncryptWindow(QWidget):
         if self._hmi.stackedWidget.currentWidget() is not self:
             self._hmi.stackedWidget.setCurrentWidget(self)
 
-        file_adder = FileAdder(self._hmi)
-        file_adder.yesButton.setText(self._locales.get_string('confirm'))
-        file_adder.cancelButton.setText(self._locales.get_string('cancel'))
+        self._file_adder.reset()
 
-        if file_adder.exec():
-            data = file_adder.get_data()
+        if self._file_adder.exec():
+            data = self._file_adder.get_data()
             self._encrypt_list.add_task(data)
-
-        sip.delete(file_adder)

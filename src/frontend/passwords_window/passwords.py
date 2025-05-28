@@ -102,6 +102,42 @@ class Passwords(SimpleCardWidget):
         from src.frontend.hmi import MainWindow
         self._hmi: MainWindow = find_mega_parent(self)
 
+        self._master_key_creator = MasterKeyCreator(self._hmi)
+        self._master_key_creator.yesButton.setText(self._locales.get_string('confirm'))
+        self._master_key_creator.cancelButton.setText(self._locales.get_string('cancel'))
+
+        self._password_creator = PasswordCreator(self._hmi)
+        self._password_creator.yesButton.setText(self._locales.get_string('confirm'))
+        self._password_creator.cancelButton.setText(self._locales.get_string('cancel'))
+
+        self._password_input = PasswordInput(self._hmi)
+        self._password_input.yesButton.setText(self._locales.get_string('confirm'))
+        self._password_input.cancelButton.setText(self._locales.get_string('cancel'))
+
+        self._mb_func_not_found = MessageBox(title=self._locales.get_string('function_not_found'),
+                                             description=self._locales.get_string('master_key_not_available'),
+                                             parent=self._hmi)
+        self._mb_func_not_found.yesButton.setText(self._locales.get_string('yes'))
+        self._mb_func_not_found.cancelButton.setText(self._locales.get_string('no'))
+
+        self._mb_clear_passwords = MessageBox(title=self._locales.get_string('clear_passwords_description'),
+                                              description=self._locales.get_string('clear_passwords_message'),
+                                              parent=self._hmi)
+        self._mb_clear_passwords.yesButton.setText(self._locales.get_string('yes'))
+        self._mb_clear_passwords.cancelButton.setText(self._locales.get_string('no'))
+
+        self._mb_reset_master_key = MessageBox(title=self._locales.get_string('reset_master_key_description'),
+                                               description=self._locales.get_string('reset_master_key_message'),
+                                               parent=self._hmi)
+        self._mb_reset_master_key.yesButton.setText(self._locales.get_string('yes'))
+        self._mb_reset_master_key.cancelButton.setText(self._locales.get_string('no'))
+
+        self._mb_remove_password = MessageBox(title=self._locales.get_string('remove_password_description'),
+                                              description=self._locales.get_string('remove_password_message'),
+                                              parent=self._hmi)
+        self._mb_remove_password.yesButton.setText(self._locales.get_string('yes'))
+        self._mb_remove_password.cancelButton.setText(self._locales.get_string('no'))
+
         self.__init_widgets()
 
     def __init_widgets(self):
@@ -131,16 +167,14 @@ class Passwords(SimpleCardWidget):
 
     def check_master_key(self):
         if self._db.get_setting('password_cipher') == '':
-            creator = MasterKeyCreator(self._hmi)
-            creator.yesButton.setText(self._locales.get_string('confirm'))
-            creator.cancelButton.setText(self._locales.get_string('cancel'))
+            self._master_key_creator.reset()
 
-            if creator.exec():
-                self._key_storage.master_key = creator.get_password()
-                self._db.set_setting('password_cipher', creator.get_encrypt_mode())
+            if self._master_key_creator.exec():
+                self._key_storage.master_key = self._master_key_creator.get_password()
+                self._db.set_setting('password_cipher', self._master_key_creator.get_encrypt_mode())
 
-                encrypt_function = micro_ciphers[creator.get_encrypt_mode()]
-                password_signature = encrypt_function(creator.get_password(),
+                encrypt_function = micro_ciphers[self._master_key_creator.get_encrypt_mode()]
+                password_signature = encrypt_function(self._master_key_creator.get_password(),
                                                       Config.SIGNATURE,
                                                       OperationType.ENCRYPT)
 
@@ -152,14 +186,7 @@ class Passwords(SimpleCardWidget):
                     self._hmi.navigationInterface.history.pop()
         else:
             if self._db.get_setting('password_cipher') not in micro_ciphers:
-                message_box = MessageBox(title=self._locales.get_string('function_not_found'),
-                                         description=self._locales.get_string('master_key_not_available'),
-                                         parent=self._hmi)
-
-                message_box.yesButton.setText(self._locales.get_string('yes'))
-                message_box.cancelButton.setText(self._locales.get_string('no'))
-
-                if message_box.exec():
+                if self._mb_func_not_found.exec():
                     self.reset_master_key(True)
 
                 else:
@@ -170,17 +197,14 @@ class Passwords(SimpleCardWidget):
                 return
             else:
                 if self._key_storage.master_key == '':
-                    password_input = PasswordInput(self._hmi)
+                    self._password_input.reset()
 
-                    password_input.yesButton.setText(self._locales.get_string('confirm'))
-                    password_input.cancelButton.setText(self._locales.get_string('cancel'))
-
-                    if password_input.exec():
-                        if password_input.need_reset():
+                    if self._password_input.exec():
+                        if self._password_input.need_reset():
                             self.reset_master_key(True)
                             return
 
-                        self._key_storage.master_key = password_input.get_password()
+                        self._key_storage.master_key = self._password_input.get_password()
                         self._password_list.set_items(
                             {record.name: record.name for record in self._db.get_all_passwords()})
                         self.sig_change_window_state.emit(True)
@@ -194,28 +218,14 @@ class Passwords(SimpleCardWidget):
             QTimer.singleShot(0, self.check_master_key)
 
     def clear_passwords(self):
-        message_box = MessageBox(title=self._locales.get_string('clear_passwords_description'),
-                                 description=self._locales.get_string('clear_passwords_message'),
-                                 parent=self._hmi)
-
-        message_box.yesButton.setText(self._locales.get_string('yes'))
-        message_box.cancelButton.setText(self._locales.get_string('no'))
-
-        if message_box.exec():
+        if self._mb_clear_passwords.exec():
             self._password_list.clear_items()
             self._db.remove_all_passwords()
             self._pager.setPageNumber(0)
             self._pager.setVisibleNumber(0)
 
     def reset_master_key(self, skip_message: bool = False):
-        message_box = MessageBox(title=self._locales.get_string('reset_master_key_description'),
-                                 description=self._locales.get_string('reset_master_key_message'),
-                                 parent=self._hmi)
-
-        message_box.yesButton.setText(self._locales.get_string('yes'))
-        message_box.cancelButton.setText(self._locales.get_string('no'))
-
-        if skip_message or message_box.exec():
+        if skip_message or self._mb_reset_master_key.exec():
             self._key_storage.master_key = ''
             self._password_list.clear_items()
             self._db.remove_all_passwords()
@@ -227,26 +237,16 @@ class Passwords(SimpleCardWidget):
             self.check_master_key()
 
     def _on_sig_delete_password(self, name: str):
-        message_box = MessageBox(title=self._locales.get_string('remove_password_description'),
-                                 description=self._locales.get_string('remove_password_message'),
-                                 parent=self._hmi)
-
-        message_box.yesButton.setText(self._locales.get_string('yes'))
-        message_box.cancelButton.setText(self._locales.get_string('no'))
-
-        if message_box.exec():
+        if self._mb_remove_password.exec():
             self._password_list.remove_item(name)
             self._db.remove_password(name)
 
     def add_password(self, password: str = ''):
-        password_creator = PasswordCreator(self._hmi)
-        password_creator.set_password(password)
+        self._password_creator.reset()
+        self._password_creator.set_password(password)
 
-        password_creator.yesButton.setText(self._locales.get_string('confirm'))
-        password_creator.cancelButton.setText(self._locales.get_string('cancel'))
-
-        if password_creator.exec():
-            if (record := password_creator.get_password_record()).name in self._password_list.items_dict:
+        if self._password_creator.exec():
+            if (record := self._password_creator.get_password_record()).name in self._password_list.items_dict:
                 InfoBar.error(
                     title=self._locales.get_string('error'),
                     content=self._locales.get_string('password_already_exists'),

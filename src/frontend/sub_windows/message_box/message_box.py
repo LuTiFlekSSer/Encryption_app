@@ -1,3 +1,4 @@
+from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QColor
 from qfluentwidgets import MessageBoxBase, BodyLabel, SubtitleLabel
 
@@ -20,3 +21,9 @@ class MessageBox(MessageBoxBase):
 
         self.viewLayout.addWidget(self._l_title)
         self.viewLayout.addWidget(self._l_description)
+
+    def keyPressEvent(self, a0):
+        if a0.key() in (Qt.Key_Return, Qt.Key_Enter):
+            self.yesButton.clicked.emit()
+        else:
+            super().keyPressEvent(a0)

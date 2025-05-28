@@ -1,3 +1,4 @@
+from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QColor
 from qfluentwidgets import MessageBoxBase, SubtitleLabel, PasswordLineEdit, TeachingTipView, PopupTeachingTip, \
     InfoBarIcon, LineEdit
@@ -106,3 +107,14 @@ class PasswordCreator(MessageBoxBase):
     def set_password(self, password: str):
         self._le_password.setText(password)
         self._le_confirm_password.setText(password)
+
+    def keyPressEvent(self, a0):
+        if a0.key() in (Qt.Key_Return, Qt.Key_Enter):
+            self.yesButton.clicked.emit()
+        else:
+            super().keyPressEvent(a0)
+
+    def reset(self):
+        self._le_password_name.clear()
+        self._le_password.clear()
+        self._le_confirm_password.clear()

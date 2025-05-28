@@ -1,3 +1,4 @@
+from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QColor
 from PyQt5.QtWidgets import QSizePolicy, QWidget
 from qfluentwidgets import MessageBoxBase, SubtitleLabel, PasswordLineEdit, TeachingTipView, InfoBarIcon, \
@@ -27,6 +28,12 @@ class PasswordInput(MessageBoxBase):
 
         self._hmi: QWidget = find_mega_parent(self)
         self._need_reset: bool = False
+
+        self._mb_reset_master_key = MessageBox(title=self._locales.get_string('reset_master_key_description'),
+                                               description=self._locales.get_string('reset_master_key_message'),
+                                               parent=self._hmi)
+        self._mb_reset_master_key.yesButton.setText(self._locales.get_string('yes'))
+        self._mb_reset_master_key.cancelButton.setText(self._locales.get_string('no'))
 
         self.__init_widgets()
 
@@ -61,14 +68,7 @@ class PasswordInput(MessageBoxBase):
             return False
 
     def _on_reset_master_key(self):
-        message_box = MessageBox(title=self._locales.get_string('reset_master_key_description'),
-                                 description=self._locales.get_string('reset_master_key_message'),
-                                 parent=self._hmi)
-
-        message_box.yesButton.setText(self._locales.get_string('yes'))
-        message_box.cancelButton.setText(self._locales.get_string('no'))
-
-        if message_box.exec():
+        if self._mb_reset_master_key.exec():
             self._need_reset = True
             self.accept()
 
@@ -118,3 +118,13 @@ class PasswordInput(MessageBoxBase):
 
     def need_reset(self) -> bool:
         return self._need_reset
+
+    def keyPressEvent(self, a0):
+        if a0.key() in (Qt.Key_Return, Qt.Key_Enter):
+            self.yesButton.clicked.emit()
+        else:
+            super().keyPressEvent(a0)
+
+    def reset(self):
+        self._le_password.clear()
+        self._need_reset = False

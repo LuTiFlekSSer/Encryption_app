@@ -69,9 +69,11 @@ class FilePicker(QWidget):
         self._db: DataBase = DataBase()
         self._loader: Loader = Loader()
 
+        self._picker_type: PickerType = picker_type
+
         self.__init_widgets(text)
 
-        self._b_picker.clicked.connect(lambda _, p=picker_type: self._on_picker_clicked(p))
+        self._b_picker.clicked.connect(lambda _, p=self._picker_type: self._on_picker_clicked(p))
 
     def _on_picker_clicked(self, picker_type: PickerType):
         directory = self._db.get_setting('last_input_path')
@@ -81,7 +83,7 @@ class FilePicker(QWidget):
 
         if picker_type == PickerType.OPEN:
             file_path, _ = QFileDialog.getOpenFileName(
-                parent=None,
+                parent=self,
                 caption=self._locales.get_string('select_input_path'),
                 directory=directory,
                 filter=self._locales.get_string('filter')
@@ -92,7 +94,7 @@ class FilePicker(QWidget):
                 directory = self._path
 
             file_path, _ = QFileDialog.getSaveFileName(
-                parent=None,
+                parent=self,
                 caption=self._locales.get_string('select_output_path'),
                 directory=directory,
                 filter=self._locales.get_string('filter')
@@ -166,6 +168,10 @@ class FilePicker(QWidget):
             return False
 
         return True
+
+    def reset(self):
+        self._path = ''
+        self._le_text.clear()
 
 
 class TitledComboBox(QWidget):
@@ -272,6 +278,9 @@ class NewPasswordWidget(QWidget):
             return False
 
         return True
+
+    def reset(self):
+        self._le_password.clear()
 
 
 class SavedPasswordWidget(QWidget):
@@ -446,6 +455,13 @@ class PasswordPicker(QWidget):
         else:
             return self._saved_passwords.get_selected_password_hash()
 
+    def reset(self):
+        self._stacked_widget.setCurrentWidget(self._password_widget)
+        self._sw_mode.setCurrentItem(self._password_widget.objectName())
+
+        self._saved_passwords.update_items([])
+        self._password_widget.reset()
+
 
 class FileAdder(MessageBoxBase):
     def __init__(self, parent=None):
@@ -584,3 +600,22 @@ class FileAdder(MessageBoxBase):
         }
 
         return data
+
+    def keyPressEvent(self, a0):
+        if a0.key() in (Qt.Key_Return, Qt.Key_Enter):
+            self.yesButton.clicked.emit()
+        else:
+            super().keyPressEvent(a0)
+
+    def reset(self):
+        self._input_picker.reset()
+        self._output_picker.reset()
+
+        self._cb_cipher.cb_items.clear()
+        self._cb_cipher.cb_items.addItems(self._loader.available_modes.keys())
+        self._update_modes()
+
+        self._password_picker.reset()
+
+        self._tw_task_type.setCurrentItem(OperationType.ENCRYPT.name)
+        self._on_task_type_encrypt()

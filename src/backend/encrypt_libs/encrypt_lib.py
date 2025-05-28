@@ -1,5 +1,6 @@
 import ctypes
 import os
+import tempfile
 from enum import Enum
 from typing import Callable
 
@@ -73,14 +74,16 @@ class EncryptLib:
             self._load_status = LibStatus.LOAD_FUNCS_ERROR
             return
 
-        enc_file_name: str = Config.TEST_FILE_ENCRYPT
-        dec_file_name: str = Config.TEST_FILE_DECRYPT
-        with open(enc_file_name, 'wb') as enc_file, open(dec_file_name, 'w'):
+        with (tempfile.TemporaryFile(mode='wb', delete=False) as enc_file,
+              tempfile.TemporaryFile(mode='w', delete=False) as dec_file):
+            enc_file_path = enc_file.name
+            dec_file_path = dec_file.name
+
             test_text = os.urandom(Config.TEST_FILE_SIZE)
             enc_file.write(test_text)
 
-        enc_file_path = os.path.join(os.path.abspath("."), enc_file_name)
-        dec_file_path = os.path.join(os.path.abspath("."), dec_file_name)
+            enc_file.flush()
+
         drive, _ = os.path.splitdrive(enc_file_path)
 
         key_type = ctypes.c_uint8 * 32
@@ -101,14 +104,14 @@ class EncryptLib:
                            ctypes.byref(ctypes.c_uint64(0)),
                            ctypes.byref(ctypes.c_uint64(0)))
 
-        with open(enc_file_name, 'rb') as f:
+        with open(enc_file_path, 'rb') as f:
             enc_test_text = f.read()
             if enc_test_text != test_text:
                 self._load_status = LibStatus.TEST_ERROR
                 return
 
-        os.remove(enc_file_name)
-        os.remove(dec_file_name)
+        os.remove(enc_file_path)
+        os.remove(dec_file_path)
 
     @property
     def load_status(self) -> LibStatus:

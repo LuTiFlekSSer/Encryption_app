@@ -188,6 +188,12 @@ class History(SimpleCardWidget):
         self._history_list: PagedListView = PagedListView(HistoryCard, parent=self)
         self._pager: PipsPager = PipsPager(self)
 
+        self._mb_clear_history = MessageBox(title=self._locales.get_string('clear_history_description'),
+                                            description=self._locales.get_string('clear_history_message'),
+                                            parent=find_mega_parent(self))
+        self._mb_clear_history.yesButton.setText(self._locales.get_string('yes'))
+        self._mb_clear_history.cancelButton.setText(self._locales.get_string('no'))
+
         self.__init_widgets()
 
         self._history_list.set_items({record.idx: record for record in self._db.get_history()})
@@ -209,14 +215,7 @@ class History(SimpleCardWidget):
         self._db.events.sig_strip_last_history_records.connect(self._history_list.strip_last_items)
 
     def clear(self):
-        message_box = MessageBox(title=self._locales.get_string('clear_history_description'),
-                                 description=self._locales.get_string('clear_history_message'),
-                                 parent=find_mega_parent(self))
-
-        message_box.yesButton.setText(self._locales.get_string('yes'))
-        message_box.cancelButton.setText(self._locales.get_string('no'))
-
-        if message_box.exec():
+        if self._mb_clear_history.exec():
             self._history_list.clear_items()
             self._db.clear_history()
             self._pager.setPageNumber(0)
