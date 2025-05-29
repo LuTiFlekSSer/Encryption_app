@@ -1,5 +1,6 @@
 import sys
 import time
+from typing import Optional
 
 from PyQt5.QtCore import QSize, QEventLoop, QTimer, Qt, pyqtSignal
 from PyQt5.QtGui import QIcon, QGuiApplication
@@ -26,6 +27,7 @@ class MainWindow(MSFluentWindow):
     sig_passwords_check_completed: pyqtSignal = pyqtSignal(bool)
     sig_add_new_password: pyqtSignal = pyqtSignal(str)
     sig_external_command: pyqtSignal = pyqtSignal(OperationType, str)
+    sig_to_front: pyqtSignal = pyqtSignal()
 
     sig_add_task: pyqtSignal = pyqtSignal()
 
@@ -66,6 +68,9 @@ class MainWindow(MSFluentWindow):
             self._splashscreen.setFixedWidth(available.width())
             self._splashscreen.setFixedHeight(available.height())
 
+        self._operation_type: Optional[str] = None
+        self._data: Optional[str] = None
+
         self._init_screen()
 
         self._splashscreen.finish()
@@ -92,10 +97,16 @@ class MainWindow(MSFluentWindow):
                              self._locales.get_string('settings'),
                              position=NavigationItemPosition.BOTTOM)
 
+        self.sig_to_front.connect(self._on_sig_to_front)
+
         if (init_time := (time.time() - init_start)) < Config.SPLASH_SCREEN_TIME:
             loop = QEventLoop(self)
             QTimer.singleShot(int((Config.SPLASH_SCREEN_TIME - init_time) * 1000), loop.quit)
             loop.exec()
+
+    def _on_sig_to_front(self):
+        self.activateWindow()
+        self.raise_()
 
     def _center(self):
         screen = QGuiApplication.primaryScreen()

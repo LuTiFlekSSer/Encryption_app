@@ -100,6 +100,9 @@ class FilePicker(QWidget):
                 filter=self._locales.get_string('filter')
             )
 
+            if not os.path.exists(file_path):
+                file_path = file_path + Config.FILE_EXTENSION
+
         if file_path:
             if picker_type == PickerType.OPEN:
                 self._db.set_setting('last_input_path', os.path.dirname(file_path))
@@ -258,7 +261,7 @@ class NewPasswordWidget(QWidget):
         return self._le_password.text().strip()
 
     def validate(self) -> bool:
-        password = self.get_password_hash()
+        password = self._le_password.text().strip()
         if not password:
             view = TeachingTipView(
                 title=self._locales.get_string('error'),
@@ -482,6 +485,9 @@ class FileAdder(MessageBoxBase):
         self._cb_mode: TitledComboBox = TitledComboBox(self._locales.get_string('mode'), self)
         self._password_picker: PasswordPicker = PasswordPicker(self)
 
+        from src.frontend.hmi import MainWindow
+        self._hmi: MainWindow = find_mega_parent(self)
+
         self.__init_widgets()
 
     def __init_widgets(self):
@@ -619,3 +625,16 @@ class FileAdder(MessageBoxBase):
 
         self._tw_task_type.setCurrentItem(OperationType.ENCRYPT.name)
         self._on_task_type_encrypt()
+
+    def set_default_data(self, path: str, operation_type: OperationType):
+        self._hmi.sig_to_front.emit()
+        self.setFocus()
+
+        self._input_picker.set_path(path)
+        self._output_picker.set_path(path)
+
+        self._tw_task_type.setCurrentItem(operation_type.name)
+        if operation_type == OperationType.ENCRYPT:
+            self._on_task_type_encrypt()
+        else:
+            self._on_task_type_decrypt()

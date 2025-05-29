@@ -66,3 +66,43 @@ Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: de
 [Run]
 Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
 
+[Registry]
+Root: HKCR; Subkey: "*\shell\GOST_Encryptor"; ValueType: string; ValueName: "MUIVerb"; ValueData: "{code:GetMainLabel}"; Flags: uninsdeletekey
+Root: HKCR; Subkey: "*\shell\GOST_Encryptor"; ValueType: string; ValueName: "Icon"; ValueData: "{app}\{#MyAppExeName}"; Flags: uninsdeletevalue
+Root: HKCR; Subkey: "*\shell\GOST_Encryptor"; ValueType: string; ValueName: "SubCommands"; ValueData: ""; Flags: uninsdeletevalue
+
+Root: HKCR; Subkey: "*\shell\GOST_Encryptor\shell\encrypt"; ValueType: string; ValueName: "MUIVerb"; ValueData: "{code:GetEncryptLabel}"; Flags: uninsdeletekey
+Root: HKCR; Subkey: "*\shell\GOST_Encryptor\shell\encrypt"; ValueType: string; ValueName: "Icon"; ValueData: "{app}\{#MyAppExeName}"; Flags: uninsdeletevalue
+Root: HKCR; Subkey: "*\shell\GOST_Encryptor\shell\encrypt\command"; ValueType: string; ValueData: """{app}\{#MyAppExeName}"" encrypt ""%1"""; Flags: uninsdeletekey
+
+Root: HKCR; Subkey: "*\shell\GOST_Encryptor\shell\decrypt"; ValueType: string; ValueName: "MUIVerb"; ValueData: "{code:GetDecryptLabel}"; Flags: uninsdeletekey
+Root: HKCR; Subkey: "*\shell\GOST_Encryptor\shell\decrypt"; ValueType: string; ValueName: "Icon"; ValueData: "{app}\{#MyAppExeName}"; Flags: uninsdeletevalue
+Root: HKCR; Subkey: "*\shell\GOST_Encryptor\shell\decrypt\command"; ValueType: string; ValueData: """{app}\{#MyAppExeName}"" decrypt ""%1"""; Flags: uninsdeletekey
+
+Root: HKCR; Subkey: ".gost"; ValueType: string; ValueName: ""; ValueData: "GOSTEncryptorFile"; Flags: uninsdeletevalue
+Root: HKCR; Subkey: "GOSTEncryptorFile"; ValueType: string; ValueName: ""; ValueData: "GOST Encrypted File"; Flags: uninsdeletekey
+Root: HKCR; Subkey: "GOSTEncryptorFile\DefaultIcon"; ValueType: string; ValueName: ""; ValueData: "{app}\{#MyAppExeName},0"; Flags: uninsdeletevalue
+Root: HKCR; Subkey: "GOSTEncryptorFile\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\{#MyAppExeName}"" ""%1"""; Flags: uninsdeletevalue
+
+[Code]
+function GetMainLabel(Value: string): string;
+begin
+    Result := 'GOST Encryptor';
+end;
+
+function GetEncryptLabel(Value: string): string;
+begin
+  if ActiveLanguage() = 'russian' then
+    Result := 'Зашифровать файл'
+  else
+    Result := 'Encrypt the file';
+end;
+
+function GetDecryptLabel(Value: string): string;
+begin
+  if ActiveLanguage() = 'russian' then
+    Result := 'Расшифровать файл'
+  else
+    Result := 'Decrypt the file';
+end;
+

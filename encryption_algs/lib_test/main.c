@@ -27,15 +27,15 @@ int main() {
     uint64_t curr = 0, total = 0;
     int result = 0;
 
-    result = encrypt_kyznechik_cbc(
-        L"C:\\Users\\boris\\Downloads\\input.txt",
-        L"C:\\",
-        L"C:\\Users\\boris\\Downloads\\input.txt",
-        kyznechik_key,
-        6,
-        &curr,
-        &total
-    );
+    // result = encrypt_kyznechik_cbc(
+    //     L"C:\\Users\\boris\\Downloads\\input.txt",
+    //     L"C:\\",
+    //     L"C:\\Users\\boris\\Downloads\\input.txt",
+    //     kyznechik_key,
+    //     6,
+    //     &curr,
+    //     &total
+    // );
 
     printf("%d\n", result);
     printf("%llu %llu\n", curr, total);
@@ -53,5 +53,30 @@ int main() {
     printf("%d\n", result);
     printf("%llu %llu\n", curr, total);
 
+    int inters = 10000000;
+    uint8_t data[] = {251, 157, 155, 99, 20, 27, 45, 16, 33, 120, 134, 41, 229, 228, 133, 1};
+    uint8_t **Ks;
+
+    magma_init();
+    magma_generate_keys(magma_key, &Ks);
+
+    clock_t start = clock();
+    for (int i = 0; i < inters; ++i) {
+        magma_encrypt_data(Ks, data, data);
+    }
+    clock_t end = clock();
+    double sec = (double)(end - start) / (double)CLOCKS_PER_SEC;
+    printf("%lf\n", 8* inters  / sec / 1024 / 1024);
+
+    start = clock();
+    for (int i = 0; i < inters; ++i) {
+        magma_decrypt_data(Ks, data, data);
+    }
+    end = clock();
+    sec = (double)(end - start) / (double)CLOCKS_PER_SEC;
+    printf("%lf\n", 8 * inters / sec / 1024 / 1024);
+
+
+    magma_finalize(Ks);
     return 0;
 }

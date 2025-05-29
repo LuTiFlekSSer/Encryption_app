@@ -57,3 +57,10 @@ class HomeWindow(ScrollArea):
                 map_status_to_description[status],
                 status == LibStatus.SUCCESS
             )
+
+        if len(self._loader.status) == 0:
+            self._lib_info_cards.add_card(
+                self._locales.get_string('error'),
+                self._locales.get_string('no_libs'),
+                False
+            )
