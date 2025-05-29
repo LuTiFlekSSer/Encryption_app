@@ -227,7 +227,7 @@ class EncryptCard(CardWidget):
         match self._status:
             case Status.COMPLETED:
                 if os.path.exists(self._output_path):
-                    norm_path = os.path.normpath(self._input_path)
+                    norm_path = os.path.normpath(self._output_path)
                     QProcess.startDetached('explorer', ['/select,', norm_path])
                 else:
                     self._show_tool_tip(

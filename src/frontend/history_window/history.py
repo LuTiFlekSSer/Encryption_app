@@ -73,8 +73,8 @@ class HistoryCard(CardWidget):
 
     def _on_click(self):
         if self._status:
-            if os.path.exists(self._input_path):
-                norm_path = os.path.normpath(self._input_path)
+            if os.path.exists(self._output_path):
+                norm_path = os.path.normpath(self._output_path)
                 QProcess.startDetached('explorer', ['/select,', norm_path])
             else:
                 self._show_tool_tip(
