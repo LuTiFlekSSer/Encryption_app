@@ -1,0 +1,3 @@
+cmd /c python change_iss_version.py
+cmd /c nuitka --standalone --enable-plugin=pyqt5 --follow-imports --jobs=12 --output-dir=build --windows-disable-console --include-data-files=src/locales/locales.json=src/locales/locales.json --include-data-dir=src/frontend/style_sheets/qss=src/frontend/style_sheets/qss --include-data-dir=res=res --output-filename="GOST Encryptor" --windows-icon-from-ico=res/favicon.ico .\main.py
+cmd /c ISCC installer.iss

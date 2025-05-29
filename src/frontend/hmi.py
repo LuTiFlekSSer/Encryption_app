@@ -2,7 +2,7 @@ import sys
 import time
 from typing import Optional
 
-from PyQt5.QtCore import QSize, QEventLoop, QTimer, Qt, pyqtSignal
+from PyQt5.QtCore import QSize, QEventLoop, QTimer, Qt, pyqtSignal, QEvent
 from PyQt5.QtGui import QIcon, QGuiApplication
 from PyQt5.QtWidgets import QApplication
 from qfluentwidgets import SplashScreen, FluentIcon, MSFluentWindow, NavigationItemPosition, setTheme, Theme, \
@@ -56,17 +56,7 @@ class MainWindow(MSFluentWindow):
         self._splashscreen: SplashScreen = SplashScreen(self.windowIcon(), self)
         self._splashscreen.setIconSize(QSize(120, 120))
         self._splashscreen.titleBar.hide()
-
-        if self._db.get_setting('window_mode') == 'normal':
-            self.show()
-        else:
-            self.showMaximized()
-
-            screen = app.primaryScreen()
-            available = screen.availableGeometry()
-
-            self._splashscreen.setFixedWidth(available.width())
-            self._splashscreen.setFixedHeight(available.height())
+        self.show()
 
         self._operation_type: Optional[str] = None
         self._data: Optional[str] = None
@@ -75,6 +65,9 @@ class MainWindow(MSFluentWindow):
 
         self._splashscreen.finish()
         self._themeListener.start()
+
+        if self._db.get_setting('window_mode') == 'maximized':
+            self.showMaximized()
 
     def _init_screen(self):
         init_start = time.time()
@@ -116,6 +109,19 @@ class MainWindow(MSFluentWindow):
 
         window_geometry.moveCenter(center_point)
         self.move(window_geometry.topLeft())
+
+    def changeEvent(self, event):
+        if event.type() == QEvent.Type.WindowStateChange:
+            if self.isMaximized():
+                desktop_rect = QApplication.desktop().availableGeometry(self)
+
+                if self.width() < desktop_rect.width() * 0.95 or \
+                        self.height() < desktop_rect.height() * 0.95:
+                    self._db.set_setting('window_size', f'{self.width()} {self.height()}')
+
+                self._db.set_setting('window_mode', 'maximized')
+
+        super().changeEvent(event)
 
     def closeEvent(self, event):
         if not self._global_flags.is_running.is_set():

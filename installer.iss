@@ -3,7 +3,7 @@
 
 #define MyAppName "GOST Encryptor"
 #define MyAppVersion "1.0.0"
-#define MyAppPublisher "LuTi_Flek$$er"
+#define MyAppPublisher "LuTi_Flek$$er, iliacym"
 #define MyAppURL "https://github.com/LuTiFlekSSer/Encryption_app"
 #define MyAppExeName "GOST Encryptor.exe"
 
@@ -31,7 +31,7 @@ ArchitecturesInstallIn64BitMode=x64compatible
 DisableProgramGroupPage=yes
 ; Remove the following line to run in administrative install mode (install for all users).
 PrivilegesRequired=admin
-OutputBaseFilename=mysetup
+OutputBaseFilename=GOST Encryptor {#MyAppVersion} Setup
 SetupIconFile=.\res\favicon.ico
 SolidCompression=yes
 WizardStyle=modern

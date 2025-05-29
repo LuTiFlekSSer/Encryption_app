@@ -87,7 +87,11 @@ class EncryptWindow(QWidget):
         self._file_adder.set_default_data(input_path, operation_type)
 
         if self._file_adder.exec():
-            data = self._file_adder.get_data()
+            try:
+                data = self._file_adder.get_data()
+            except Exception:
+                data = {}
+
             self._encrypt_list.add_task(data)
 
         self._global_flags.modal_open.clear()

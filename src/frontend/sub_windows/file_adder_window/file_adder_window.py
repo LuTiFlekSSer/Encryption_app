@@ -53,6 +53,10 @@ class PickerType(Enum):
     SAVE = 1
 
 
+operation_type = OperationType.ENCRYPT
+input_path = ''
+
+
 class FilePicker(QWidget):
     sig_file_opened: pyqtSignal = pyqtSignal(str)
 
@@ -76,6 +80,8 @@ class FilePicker(QWidget):
         self._b_picker.clicked.connect(lambda _, p=self._picker_type: self._on_picker_clicked(p))
 
     def _on_picker_clicked(self, picker_type: PickerType):
+        global input_path
+
         directory = self._db.get_setting('last_input_path')
         if not os.path.exists(directory):
             directory = '.'
@@ -100,30 +106,55 @@ class FilePicker(QWidget):
                 filter=self._locales.get_string('filter')
             )
 
-            if not os.path.exists(file_path):
-                file_path = file_path + Config.FILE_EXTENSION
-
         if file_path:
             if picker_type == PickerType.OPEN:
                 self._db.set_setting('last_input_path', os.path.dirname(file_path))
+                input_path = file_path
 
             self._path = file_path
-            self._set_elided_text(self._le_text, file_path)
+            if picker_type == PickerType.SAVE:
+                self.set_correct_extension()
+            self._set_elided_text(self._le_text, self._path)
 
             self.sig_file_opened.emit(self._path)
+
+    def set_correct_extension(self, only_file_extension: bool = False):
+        if operation_type == OperationType.ENCRYPT:
+            if not os.path.exists(self._path) and \
+                    self._path != input_path:
+                _, ext = os.path.splitext(input_path)
+                if only_file_extension:
+                    self._path = self._path + Config.FILE_EXTENSION
+                else:
+                    self._path = self._path + ext + Config.FILE_EXTENSION
+
+        else:
+            if self._path.endswith(Config.FILE_EXTENSION):
+                self._path = self._remove_last_extension(self._path)
+
+        self._set_elided_text(self._le_text, self._path)
+
+    @staticmethod
+    def _remove_last_extension(filename: str) -> str:
+        base, ext = os.path.splitext(filename)
+        if ext:
+            return base
+
+        return filename
 
     def get_path(self) -> str:
         return self._path
 
     def set_path(self, path: str):
-        if self._path == '':
-            self._path = path
-            self._set_elided_text(self._le_text, self._path)
+        self._path = path
+        if self._picker_type == PickerType.SAVE:
+            self.set_correct_extension()
+        self._set_elided_text(self._le_text, self._path)
 
     @staticmethod
     def _set_elided_text(edit: LineEdit, text: str):
         metrics = QFontMetrics(edit.font())
-        elided = metrics.elidedText(text, Qt.ElideMiddle, edit.width() - 20)
+        elided = metrics.elidedText(text, Qt.ElideMiddle, edit.width() - 24)
         edit.setText(elided)
 
     def __init_widgets(self, text: str):
@@ -545,14 +576,28 @@ class FileAdder(MessageBoxBase):
             pass
 
     def _on_task_type_encrypt(self):
+        global operation_type
+
+        if operation_type != OperationType[self._tw_task_type.currentRouteKey()]:
+            operation_type = OperationType[self._tw_task_type.currentRouteKey()]
+            self._output_picker.set_correct_extension(True)
+
         self._h_layout.addWidget(self._cb_cipher)
         self._h_layout.addWidget(self._cb_mode)
+
         self._cb_cipher.setVisible(True)
         self._cb_mode.setVisible(True)
 
     def _on_task_type_decrypt(self):
+        global operation_type
+
+        if operation_type != OperationType[self._tw_task_type.currentRouteKey()]:
+            operation_type = OperationType[self._tw_task_type.currentRouteKey()]
+            self._output_picker.set_correct_extension(True)
+
         self._h_layout.removeWidget(self._cb_cipher)
         self._h_layout.removeWidget(self._cb_mode)
+
         self._cb_cipher.setVisible(False)
         self._cb_mode.setVisible(False)
 
@@ -614,6 +659,11 @@ class FileAdder(MessageBoxBase):
             super().keyPressEvent(a0)
 
     def reset(self):
+        global input_path, operation_type
+
+        input_path = ''
+        operation_type = OperationType.ENCRYPT
+
         self._input_picker.reset()
         self._output_picker.reset()
 
@@ -626,15 +676,17 @@ class FileAdder(MessageBoxBase):
         self._tw_task_type.setCurrentItem(OperationType.ENCRYPT.name)
         self._on_task_type_encrypt()
 
-    def set_default_data(self, path: str, operation_type: OperationType):
+    def set_default_data(self, path: str, op_type: OperationType):
+        global input_path
         self._hmi.sig_to_front.emit()
         self.setFocus()
 
+        input_path = path
         self._input_picker.set_path(path)
         self._output_picker.set_path(path)
 
-        self._tw_task_type.setCurrentItem(operation_type.name)
-        if operation_type == OperationType.ENCRYPT:
+        self._tw_task_type.setCurrentItem(op_type.name)
+        if op_type == OperationType.ENCRYPT:
             self._on_task_type_encrypt()
         else:
             self._on_task_type_decrypt()
