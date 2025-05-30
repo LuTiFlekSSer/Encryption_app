@@ -48,7 +48,6 @@ class SettingsWindow(ScrollArea):
         self._vl_view_layout.addSpacing(16)
 
         self._vl_view_layout.addWidget(self._app_settings)
-        self._vl_view_layout.addSpacing(16)
 
     def _connect_widget_actions(self):
         pass
