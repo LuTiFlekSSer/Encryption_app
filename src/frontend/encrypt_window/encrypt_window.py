@@ -70,7 +70,7 @@ class EncryptWindow(QWidget):
                 isClosable=False,
                 position=InfoBarPosition.BOTTOM_RIGHT,
                 duration=3000,
-                parent=self
+                parent=self._hmi
             )
 
             return

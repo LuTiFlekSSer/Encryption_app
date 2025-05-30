@@ -123,7 +123,9 @@ class FilePicker(QWidget):
             if not os.path.exists(self._path) and \
                     self._path != input_path:
                 _, ext = os.path.splitext(input_path)
-                if only_file_extension:
+                _, out_ext = os.path.splitext(self._path)
+
+                if only_file_extension or ext == out_ext:
                     self._path = self._path + Config.FILE_EXTENSION
                 else:
                     self._path = self._path + ext + Config.FILE_EXTENSION
