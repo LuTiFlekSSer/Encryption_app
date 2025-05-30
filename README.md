@@ -2,7 +2,7 @@
 
 ![Logo](res/favicon.ico)  
 GOST Encryptor  
-[![ru](https://img.shields.io/badge/README--red.svg)](README.md)
+[![ru](https://img.shields.io/badge/README-en-red.svg)](README.md)
 
 </h1>
 
