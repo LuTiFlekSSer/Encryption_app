@@ -2,7 +2,7 @@
 
 ![Logo](res/favicon.ico)  
 GOST Encryptor  
-[![ru](https://img.shields.io/badge/README-en-red.svg)](README_RU.md)
+[![ru](https://img.shields.io/badge/README-ru-red.svg)](README_RU.md)
 
 </h1>
 
@@ -13,7 +13,7 @@ GOST Encryptor
 [![Last release](https://img.shields.io/github/v/release/LuTiFlekSSer/Encryption_app)](https://github.com/LuTiFlekSSer/Encryption_app/releases/latest "Download")
 ![Downloads](https://img.shields.io/github/downloads/LuTiFlekSSer/Encryption_app/total "Not clickable")
 
-**GOST Encryptor** is an application for file encryption using Russian encryption algorithms and modes according to GOST
+**GOST Encryptor** - is an application for file encryption using Russian encryption algorithms and modes according to GOST
 34.12 and GOST 34.13.
 
 </div>
